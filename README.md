@@ -65,9 +65,9 @@
       src="https://img.shields.io/badge/Buy%20me%20a-coffee-FFDD00.svg?style=flat&logo=buymeacoffee"
       alt="Buy me a coffee">
   </a>
-  <a href="https://app.fossa.com/projects/git%2Bgithub.com%2Fbillsioros%2Flinqpy?ref=badge_shield">
+  <a href="https://app.fossa.com/projects/custom%2B27372%2Fgithub.com%2Fbillsioros%2Flinqpy/refs/branch/fix%2Fworking-version/f7d8508218ccd7057042a87c424029d8c98382d6">
     <img
-      src="https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbillsioros%2Flinqpy.svg?type=shield"
+      src="https://app.fossa.com/api/projects/custom%2B27372%2Fgithub.com%2Fbillsioros%2Flinqpy.svg?type=shield"
       alt="FOSSA Status"
     />
   </a>
