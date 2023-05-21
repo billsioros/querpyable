@@ -1,6 +1,7 @@
 """A Python implementation of LINQ."""
 
 from abc import ABC, abstractmethod
+from itertools import chain
 from typing import Callable, Dict, Generator, Iterable, List, Optional, Tuple, Type, TypeVar
 
 T = TypeVar('T')
@@ -58,9 +59,9 @@ class Skip(Query):
         self.count = count
 
     def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        for _, item in zip(range(self.count), source):
-            pass
-        yield from source
+        for index, item in enumerate(source):
+            if index >= self.count:
+                yield item
 
 
 class Distinct(Query):
@@ -193,8 +194,14 @@ class Contains(Query):
 
 
 class Count(Query):
+    def __init__(self, predicate: Callable[[T], bool] = None):
+        self.predicate = predicate
+
     def __call__(self, source: Generator[T, None, None]) -> Generator[int, None, None]:
-        return sum(1 for _ in source)
+        if self.predicate:
+            return sum(1 for item in source if self.predicate(item))
+        else:
+            return sum(1 for _ in source)
 
 
 class Sum(Query):
@@ -251,21 +258,21 @@ class Union(Binary):
     def __call__(
         self, source1: Generator[T, None, None], source2: Generator[T, None, None]
     ) -> Generator[T, None, None]:
-        return set(source1).union(source2)
+        yield from set(source1).union(source2)
 
 
 class Intersect(Binary):
     def __call__(
         self, source1: Generator[T, None, None], source2: Generator[T, None, None]
     ) -> Generator[T, None, None]:
-        return set(source1).intersection(source2)
+        yield from set(source1).intersection(source2)
 
 
 class Except(Binary):
     def __call__(
         self, source1: Generator[T, None, None], source2: Generator[T, None, None]
     ) -> Generator[T, None, None]:
-        return set(source1).difference(source2)
+        yield from set(source1).difference(source2)
 
 
 class First(Query):
@@ -275,7 +282,7 @@ class First(Query):
     def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
         if self.predicate is None:
             try:
-                return next(source)
+                return next(iter(source))
             except StopIteration:
                 raise ValueError("Sequence contains no elements.")
         for item in source:
@@ -285,13 +292,15 @@ class First(Query):
 
 
 class FirstOrDefault(Query):
-    def __init__(self, predicate: Optional[Callable[[T], bool]] = None):
+    def __init__(
+        self, predicate: Optional[Callable[[T], bool]] = None, default: Optional[T] = None
+    ):
         self.predicate = predicate
 
     def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
         if self.predicate is None:
             try:
-                return next(source)
+                return next(iter(source))
             except StopIteration:
                 return None
         for item in source:
@@ -322,7 +331,9 @@ class Last(Query):
 
 
 class LastOrDefault(Query):
-    def __init__(self, predicate: Optional[Callable[[T], bool]] = None):
+    def __init__(
+        self, predicate: Optional[Callable[[T], bool]] = None, default: Optional[T] = None
+    ):
         self.predicate = predicate
 
     def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
@@ -345,11 +356,13 @@ class Single(Query):
         self.predicate = predicate
 
     def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+        items = iter(source)
+
         if self.predicate is None:
             try:
-                result = next(source)
+                result = next(items)
                 try:
-                    next(source)
+                    next(items)
                     raise ValueError("Sequence contains more than one element.")
                 except StopIteration:
                     return result
@@ -369,15 +382,19 @@ class Single(Query):
 
 
 class SingleOrDefault(Query):
-    def __init__(self, predicate: Optional[Callable[[T], bool]] = None):
+    def __init__(
+        self, predicate: Optional[Callable[[T], bool]] = None, default: Optional[T] = None
+    ):
         self.predicate = predicate
 
     def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+        items = iter(source)
+
         if self.predicate is None:
             try:
-                result = next(source)
+                result = next(items)
                 try:
-                    next(source)
+                    next(items)
                     raise ValueError("Sequence contains more than one element.")
                 except StopIteration:
                     return result
@@ -406,7 +423,7 @@ class ElementAt(Query):
 
 
 class ElementAtOrDefault(Query):
-    def __init__(self, index: int):
+    def __init__(self, index: int, default: Optional[T] = None):
         self.index = index
 
     def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
@@ -422,7 +439,7 @@ class DefaultIfEmpty(Unary):
 
     def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
         try:
-            first_item = next(source)
+            first_item = next(iter(source))
         except StopIteration:
             if self.default_value is not None:
                 yield self.default_value
@@ -452,31 +469,6 @@ class OfType(Query):
         return (item for item in source if isinstance(item, self.type_filter))
 
 
-class Take(Query):
-    def __init__(self, count: int):
-        self.count = count
-
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        return (item for i, item in enumerate(source) if i < self.count)
-
-
-class Skip(Query):
-    def __init__(self, count: int):
-        self.count = count
-
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        return (item for i, item in enumerate(source) if i >= self.count)
-
-
-class Distinct(Query):
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        seen = set()
-        for item in source:
-            if item not in seen:
-                seen.add(item)
-                yield item
-
-
 class Queryable(Iterable[T]):
     def __init__(self, collection: Iterable[T]):
         self.collection = collection
@@ -485,7 +477,15 @@ class Queryable(Iterable[T]):
         return iter(self)
 
     def __iter__(self) -> Generator[T, None, None]:
-        return iter(self)
+        yield from self.collection
+
+    @classmethod
+    def range(cls, start: int, stop: int, step: int = 1) -> 'Queryable':
+        return cls(range(start, stop, step))
+
+    @classmethod
+    def empty() -> 'Queryable':
+        return cls([])
 
     def query(self) -> 'Queryable':
         return Queryable(self)
@@ -508,12 +508,8 @@ class Queryable(Iterable[T]):
     def of_type(self, type_filter: Type[U]) -> 'Queryable':
         return Queryable(OfType(type_filter)(self))
 
-    def select_many(
-        self,
-        collection_selector: Callable[[T], Iterable[U]],
-        result_selector: Optional[Callable[[T, U], V]] = None,
-    ) -> 'Queryable':
-        return Queryable(SelectMany(collection_selector, result_selector)(self))
+    def select_many(self, selector: Callable[[T], Iterable[U]]) -> 'Queryable':
+        return Queryable(SelectMany(selector)(self))
 
     def order_by(self, key_selector: Callable[[T], U]) -> 'Queryable':
         return Queryable(OrderBy(key_selector)(self))
@@ -526,6 +522,64 @@ class Queryable(Iterable[T]):
 
     def then_by_descending(self, key_selector: Callable[[T], U]) -> 'Queryable':
         return Queryable(ThenByDescending(key_selector)(self))
+
+    def concat(self, other: Iterable[T]) -> 'Queryable[T]':
+        return Queryable(chain(self, other))
+
+    def aggregate(self, func: Callable[[T, T], T]) -> T:
+        return Queryable(Aggregate(func)(self))
+
+    def union(self, other: Iterable[T]) -> 'Queryable[T]':
+        return Queryable(Union()(self, other))
+
+    def intersect(self, other: Iterable[T]) -> 'Queryable[T]':
+        return Queryable(Intersect()(self, other))
+
+    def all(self, predicate: Callable[[T], bool]) -> bool:
+        return All(predicate)(self)
+
+    def any(self, predicate: Callable[[T], bool] = None) -> bool:
+        return Any(predicate)(self)
+
+    def count(self, predicate: Callable[[T], bool] = None) -> int:
+        return Count(predicate)(self)
+
+    def except_for(self, other: Iterable[T]) -> 'Queryable[T]':
+        return Queryable(Except()(self, other))
+
+    def first(self, predicate: Callable[[T], bool] = None) -> T:
+        return First(predicate)(self)
+
+    def first_or_default(
+        self, predicate: Callable[[T], bool] = None, default: Optional[T] = None
+    ) -> T:
+        return FirstOrDefault(predicate, default)(self)
+
+    def last(self, predicate: Callable[[T], bool] = None) -> T:
+        return Last(predicate)(self)
+
+    def last_or_default(
+        self, predicate: Callable[[T], bool] = None, default: Optional[T] = None
+    ) -> T:
+        return LastOrDefault(predicate, default)(self)
+
+    def single(self, predicate: Callable[[T], bool] = None) -> T:
+        return Single(predicate)(self)
+
+    def single_or_default(
+        self, predicate: Callable[[T], bool] = None, default: Optional[T] = None
+    ) -> T:
+        return SingleOrDefault(predicate, default)(self)
+
+    def element_at(self, index: int) -> T:
+        return ElementAt(index)(self)
+
+    def element_at_or_default(self, index: int, default: Optional[T] = None) -> T:
+        return ElementAtOrDefault(index, default)(self)
+
+    def default_if_empty(self, default: T) -> 'Queryable[T]':
+        query = DefaultIfEmpty(default)
+        return Queryable(query(self))
 
     def join(
         self,

@@ -73,6 +73,17 @@
   </a>
 </p>
 
+## :bulb: Example
+
+> Calculating the first 10000 primes
+
+```python
+Queryable \
+  .range(2, 1_000_000) \
+  .where(lambda n: all(n % i != 0 for i in range(2, int(n ** 0.5) + 1))) \
+  .take(10000)
+```
+
 ## :cd: Installation
 
 ```bash
