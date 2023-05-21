@@ -1,0 +1,151 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "linqpy"
+version = "0.0.0"
+description = "A Python implementation of LINQ"
+readme = "README.md"
+authors = ["Vasilis Sioros <billsioros97@gmail.com>"]
+license = "MIT"
+homepage = "https://billsioros.github.io/linqpy"
+repository = "https://github.com/billsioros/linqpy"
+keywords = []
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/billsioros/linqpy/issues"
+"Changelog" = "https://github.com/billsioros/linqpy/releases"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+python-semantic-release = "*"
+wemake-python-styleguide = "*"
+flakeheaven = "*"
+isort = "*"
+mypy = "*"
+black = "*"
+pre-commit = "*"
+poethepoet = "*"
+coverage = {extras = ["toml"], version = "*" }
+pytest = "*"
+pytest-cov = "*"
+pytest-sugar = "*"
+pytest-clarity = "*"
+mkdocs = "*"
+mkdocs-material = "*"
+mkdocs-minify-plugin = "*"
+mkdocs-redirects = "*"
+mkdocstrings = { extras = ["python"], version = "*" }
+mdx-truly-sane-lists = "*"
+mike = "*"
+
+[tool.semantic_release]
+version_toml = "pyproject.toml:tool.poetry.version"
+changelog_components = "semantic_release.changelog.changelog_headers,semantic_release.changelog.compare_url"
+build_command = "python -m pip install poetry && poetry build"
+
+[tool.vulture]
+min_confidence = 95
+paths = ["src/linqpy", "tests"]
+
+[tool.poe.tasks]
+clean = { cmd = "rm -rf ./**/__pycache__ dist site .pytest_cache .mypy_cache .coverage", help = "Clean up any auxiliary files" }
+format = { shell = "poetry run isort .; poetry run black .", help = "Format your codebase" }
+hooks = { cmd = "poetry run pre-commit run --all-files", help = "Run all pre-commit hooks" }
+test = { cmd = "poetry run pytest --cov=linqpy", help = "Run the test suite and produce a coverage report" }
+type-check = { cmd = "poetry run mypy", help = "Run static type checking on your codebase" }
+lint = { cmd = "poetry run flakeheaven lint", help = "Lint your code for errors" }
+docs = { shell = "python -c 'import webbrowser; webbrowser.open(\"http://127.0.0.1:8000\")'; poetry run mkdocs serve", help = "Build and serve the documentation" }
+export = { cmd = "poetry export --without-hashes --dev -o requirements.txt" }
+
+[tool.pytest.ini_options]
+addopts = "-vv --color=yes"
+log_cli = false
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+log_cli_format = "%(asctime)s %(levelname)s %(message)s"
+log_cli_level = "INFO"
+python_files = "test_*.py"
+python_functions = "test_*"
+testpaths = "tests"
+
+[tool.coverage.paths]
+source = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["linqpy"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100
+exclude_lines = ["if self.debug:", "pragma: no cover", "raise NotImplementedError", "if __name__ == .__main__.:"]
+ignore_errors = true
+omit = ["tests/*"]
+
+[tool.isort]
+profile = "black"
+src_paths = ["src/linqpy", "tests"]
+line_length = 99
+known_first_party = "linqpy"
+
+[tool.black]
+line-length = 99
+target-version = ["py37", "py38"]
+skip-string-normalization = true
+
+[tool.mypy]
+files = ["src/linqpy"]
+warn_unused_configs = true
+warn_return_any = true
+ignore_missing_imports = true
+pretty = true
+color_output = true
+show_column_numbers = true
+show_error_codes = true
+show_error_context = true
+strict = true
+
+[tool.flakeheaven]
+exclude = [
+  ".git",
+  ".github",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".vscode",
+  ".venv",
+  "build",
+  "dist",
+  "docs",
+  "tests",
+  "__pycache__",
+  "README.md"
+]
+format = "colored"
+show_source = false
+statistics = false
+docstring-convention = "google"
+
+accept_encodings = "utf-8"
+max_line_length = 99
+
+extended_default_ignore = []
+
+[tool.flakeheaven.plugins]
+"flake8-*" = ["+*"]
+mccabe = ["+*"]
+"pep8-naming" = ["+*"]
+pycodestyle = ["+*"]
+pyflakes = ["+*"]
+"wemake-python-styleguide" = ["+*"]
+
+[tool.pydocstyle]
+convention = "google"
