@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "LinqPy"
-version = "0.1.0"
+version = "1.0.0"
 description = "A Python implementation of LINQ"
 readme = "README.md"
 authors = ["Vasilis Sioros <billsioros97@gmail.com>"]
