@@ -1,3 +1,3 @@
-# Documentation for `linqpy`
+# Documentation for `querpyable`
 
-::: linqpy.linqpy
+::: querpyable.querpyable
