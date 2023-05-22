@@ -1,15 +1,15 @@
-site_name: Linqpy
+site_name: Querpyable
 site_description: "A Python implementation of LINQ"
-site_url: "https://billsioros.github.io/linqpy/"
-repo_url: "https://github.com/billsioros/linqpy"
+site_url: "https://billsioros.github.io/querpyable/"
+repo_url: "https://github.com/billsioros/querpyable"
 edit_uri: "edit/master/docs/"
-repo_name: "billsioros/linqpy"
+repo_name: "billsioros/querpyable"
 copyright: |
   Copyright &copy; 2023-2023 <a href="https://github.com/billsioros" target="_blank" rel="noopener">Vasilis Sioros</a>
 nav:
   - Overview: index.md
   - Code Reference:
-      - Linqpy: src/linqpy.md
+      - querpyable: src/querpyable.md
   - Contributing:
       - Contributing Guidelines: CONTRIBUTING.md
       - Code Of Conduct: CODE_OF_CONDUCT.md
@@ -59,7 +59,7 @@ plugins:
   - search
   - mkdocstrings:
       watch:
-        - src/linqpy
+        - src/querpyable
       default_handler: python
       handlers:
         python:

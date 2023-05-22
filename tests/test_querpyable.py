@@ -1,6 +1,6 @@
 import pytest
 
-from linqpy.linqpy import Queryable
+from querpyable.querpyable import Queryable
 
 
 @pytest.fixture
