@@ -90,25 +90,6 @@ Queryable \
 pip install querpyable
 ```
 
-In order to locally set up the project please follow the instructions below:
-
-```shell
-# Set up the GitHub repository
-git init
-git config --local user.name Vasilis Sioros
-git config --local user.email billsioros97@gmail.com
-git add .
-git commit -m "feat: initial commit"
-git remote add origin https://github.com/billsioros/querpyable
-
-# Create a virtual environment using poetry and install the required dependencies
-poetry shell
-poetry install
-
-# Install pre-commit hooks
-pre-commit install --install-hooks
-```
-
 ## :book: Documentation
 
 The project's documentation can be found [here](https://billsioros.github.io/querpyable/).
