@@ -26,7 +26,9 @@ class Unary(ABC):
 class Binary(ABC):
     @abstractmethod
     def __call__(
-        self, source1: Generator[T, None, None], source2: Generator[U, None, None],
+        self,
+        source1: Generator[T, None, None],
+        source2: Generator[U, None, None],
     ) -> Generator[T, None, None]:
         pass
 
@@ -129,7 +131,9 @@ class Join(Binary):
         self.result_selector = result_selector
 
     def __call__(
-        self, source1: Generator[T, None, None], source2: Generator[U, None, None],
+        self,
+        source1: Generator[T, None, None],
+        source2: Generator[U, None, None],
     ) -> Generator[V, None, None]:
         lookup = {self.inner_key_selector(item): item for item in self.inner}
         for item in source1:
@@ -152,7 +156,9 @@ class GroupJoin(Binary):
         self.result_selector = result_selector
 
     def __call__(
-        self, source1: Generator[T, None, None], source2: Generator[U, None, None],
+        self,
+        source1: Generator[T, None, None],
+        source2: Generator[U, None, None],
     ) -> Generator[V, None, None]:
         lookup = {self.inner_key_selector(item): item for item in self.inner}
         for item in source1:
@@ -163,7 +169,9 @@ class GroupJoin(Binary):
 
 class Zip(Binary):
     def __call__(
-        self, source1: Generator[T, None, None], source2: Generator[U, None, None],
+        self,
+        source1: Generator[T, None, None],
+        source2: Generator[U, None, None],
     ) -> Generator[tuple[T, U], None, None]:
         return zip(source1, source2)
 
@@ -250,7 +258,9 @@ class Aggregate(Query):
 
 class Concat(Binary):
     def __call__(
-        self, source1: Generator[T, None, None], source2: Generator[T, None, None],
+        self,
+        source1: Generator[T, None, None],
+        source2: Generator[T, None, None],
     ) -> Generator[T, None, None]:
         yield from source1
         yield from source2
@@ -258,21 +268,27 @@ class Concat(Binary):
 
 class Union(Binary):
     def __call__(
-        self, source1: Generator[T, None, None], source2: Generator[T, None, None],
+        self,
+        source1: Generator[T, None, None],
+        source2: Generator[T, None, None],
     ) -> Generator[T, None, None]:
         yield from set(source1).union(source2)
 
 
 class Intersect(Binary):
     def __call__(
-        self, source1: Generator[T, None, None], source2: Generator[T, None, None],
+        self,
+        source1: Generator[T, None, None],
+        source2: Generator[T, None, None],
     ) -> Generator[T, None, None]:
         yield from set(source1).intersection(source2)
 
 
 class Except(Binary):
     def __call__(
-        self, source1: Generator[T, None, None], source2: Generator[T, None, None],
+        self,
+        source1: Generator[T, None, None],
+        source2: Generator[T, None, None],
     ) -> Generator[T, None, None]:
         yield from set(source1).difference(source2)
 
@@ -297,7 +313,9 @@ class First(Query):
 
 class FirstOrDefault(Query):
     def __init__(
-        self, predicate: Optional[Callable[[T], bool]] = None, default: Optional[T] = None,
+        self,
+        predicate: Optional[Callable[[T], bool]] = None,
+        default: Optional[T] = None,
     ) -> None:
         self.predicate = predicate
 
@@ -338,7 +356,9 @@ class Last(Query):
 
 class LastOrDefault(Query):
     def __init__(
-        self, predicate: Optional[Callable[[T], bool]] = None, default: Optional[T] = None,
+        self,
+        predicate: Optional[Callable[[T], bool]] = None,
+        default: Optional[T] = None,
     ) -> None:
         self.predicate = predicate
 
@@ -393,7 +413,9 @@ class Single(Query):
 
 class SingleOrDefault(Query):
     def __init__(
-        self, predicate: Optional[Callable[[T], bool]] = None, default: Optional[T] = None,
+        self,
+        predicate: Optional[Callable[[T], bool]] = None,
+        default: Optional[T] = None,
     ) -> None:
         self.predicate = predicate
 
@@ -463,7 +485,9 @@ class DefaultIfEmpty(Unary):
 
 class ToDictionary(Query):
     def __init__(
-        self, key_selector: Callable[[T], K], value_selector: Optional[Callable[[T], V]] = None,
+        self,
+        key_selector: Callable[[T], K],
+        value_selector: Optional[Callable[[T], V]] = None,
     ) -> None:
         self.key_selector = key_selector
         self.value_selector = value_selector
@@ -564,7 +588,9 @@ class Queryable(Iterable[T]):
         return First(predicate)(self)
 
     def first_or_default(
-        self, predicate: Callable[[T], bool] = None, default: Optional[T] = None,
+        self,
+        predicate: Callable[[T], bool] = None,
+        default: Optional[T] = None,
     ) -> T:
         return FirstOrDefault(predicate, default)(self)
 
@@ -572,7 +598,9 @@ class Queryable(Iterable[T]):
         return Last(predicate)(self)
 
     def last_or_default(
-        self, predicate: Callable[[T], bool] = None, default: Optional[T] = None,
+        self,
+        predicate: Callable[[T], bool] = None,
+        default: Optional[T] = None,
     ) -> T:
         return LastOrDefault(predicate, default)(self)
 
@@ -580,7 +608,9 @@ class Queryable(Iterable[T]):
         return Single(predicate)(self)
 
     def single_or_default(
-        self, predicate: Callable[[T], bool] = None, default: Optional[T] = None,
+        self,
+        predicate: Callable[[T], bool] = None,
+        default: Optional[T] = None,
     ) -> T:
         return SingleOrDefault(predicate, default)(self)
 
