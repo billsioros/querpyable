@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Generator, Iterable
 from itertools import chain
 from typing import Optional, TypeVar
+from typing import Union as UnionType
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -11,64 +12,137 @@ K = TypeVar("K")
 V = TypeVar("V")
 
 
-class Query(ABC):
-    @abstractmethod
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        pass
-
-
 class Unary(ABC):
+    """Base class for unary operations."""
+
     @abstractmethod
-    def __call__(self, source: Generator[T, None, None]) -> Generator[U, None, None]:
-        pass
+    def __call__(self, source: Iterable[T]) -> Iterable[U]:
+        """Applies an operation to a single source sequence.
+
+        Args:
+            source (Iterable[T]): The source sequence.
+
+        Yields:
+            Iterable[U]: The resulting sequence after applying the operation.
+        """
 
 
 class Binary(ABC):
+    """Base class for binary operations."""
+
     @abstractmethod
     def __call__(
         self,
-        source1: Generator[T, None, None],
-        source2: Generator[U, None, None],
-    ) -> Generator[T, None, None]:
-        pass
+        source1: Iterable[T],
+        source2: Iterable[U],
+    ) -> Iterable[T]:
+        """Applies an operation to two source sequences.
+
+        Args:
+            source1 (Iterable[T]): The first source sequence.
+            source2 (Iterable[U]): The second source sequence.
+
+        Returns:
+            Iterable[T]: The resulting sequence after applying the operation.
+        """
 
 
-class Where(Query):
+class Where(Unary):
     def __init__(self, predicate: Callable[[T], bool]) -> None:
+        """Initializes a new instance of the Where class.
+
+        Args:
+            predicate (Callable[[T], bool]): A function to test each element for a condition.
+        """
         self.predicate = predicate
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        return (item for item in source if self.predicate(item))
+    def __call__(self, source: Iterable[T]) -> Iterable[T]:
+        """Filters a sequence of values based on a predicate.
+
+        Args:
+            source (Iterable[T]): The source sequence.
+
+        Yields:
+            Iterable[T]: The resulting sequence after filtering elements based on the predicate.
+        """
+        yield from (item for item in source if self.predicate(item))
 
 
 class Select(Unary):
     def __init__(self, selector: Callable[[T], U]) -> None:
+        """Initializes a new instance of the Select class.
+
+        Args:
+            selector (Callable[[T], U]): A transform function to apply to each element.
+        """
         self.selector = selector
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[U, None, None]:
-        return (self.selector(item) for item in source)
+    def __call__(self, source: Iterable[T]) -> Iterable[U]:
+        """Projects each element of a sequence into a new form.
+
+        Args:
+            source (Iterable[T]): The source sequence.
+
+        Yields:
+            Iterable[U]: The resulting sequence after applying the transform function.
+        """
+        yield from (self.selector(item) for item in source)
 
 
-class Take(Query):
+class Take(Unary):
     def __init__(self, count: int) -> None:
+        """Initializes a new instance of the Take class.
+
+        Args:
+            count (int): The number of elements to take from the source sequence.
+        """
         self.count = count
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        return (item for _, item in zip(range(self.count), source))
+    def __call__(self, source: Iterable[T]) -> Iterable[T]:
+        """Returns a specified number of contiguous elements from the start of a sequence.
+
+        Args:
+            source (Iterable[T]): The source sequence.
+
+        Yields:
+            Iterable[T]: The resulting sequence with the specified number of elements.
+        """
+        yield from (item for _, item in zip(range(self.count), source))
 
 
-class Skip(Query):
+class Skip(Unary):
     def __init__(self, count: int) -> None:
+        """Initializes a new instance of the Skip class.
+
+        Args:
+            count (int): The number of elements to skip from the start of the source sequence.
+        """
         self.count = count
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
+    def __call__(self, source: Iterable[T]) -> Iterable[T]:
+        """Skips the specified number of elements in the sequence.
+
+        Args:
+            source: The input sequence.
+
+        Returns:
+            An iterable representing the result of skipping the elements.
+        """
         for index, item in enumerate(source):
             if index >= self.count:
                 yield item
 
 
-class Distinct(Query):
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
+class Distinct(Unary):
+    def __call__(self, source: Iterable[T]) -> Iterable[T]:
+        """Filters out duplicate elements from the source sequence.
+
+        Args:
+            source (Iterable[T]): The source sequence.
+
+        Yields:
+            T: The unique elements from the source sequence.
+        """
         seen = set()
         for item in source:
             if item not in seen:
@@ -77,50 +151,148 @@ class Distinct(Query):
 
 
 class SelectMany(Unary):
-    def __init__(self, selector: Callable[[T], Generator[U, None, None]]) -> None:
+    def __init__(self, selector: Callable[[T], Iterable[U]]) -> None:
+        """Initializes a new instance of the SelectMany class.
+
+        Args:
+            selector (Callable[[T], Iterable[U]]): A function that projects each element of the source sequence to an iterable.
+        """
         self.selector = selector
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[U, None, None]:
+    def __call__(self, source: Iterable[T]) -> Iterable[U]:
+        """Projects each element of the source sequence to an iterable and flattens the resulting sequences into one sequence.
+
+        Args:
+            selector (Callable[[T], Iterable[U]]): A function that projects each element of the source sequence to an iterable.
+
+        Yields:
+            U: The flattened sequence of projected elements.
+        """
         for item in source:
             yield from self.selector(item)
 
 
-class OrderBy(Query):
+class OrderBy(Unary):
+    """A class representing an order by operation on a sequence of elements."""
+
     def __init__(self, key_selector: Callable[[T], U]) -> None:
+        """Initialize a new instance of the OrderBy class.
+
+        Args:
+            key_selector (Callable[[T], U]): A callable object that takes an element
+                from the source sequence and returns a key used for sorting.
+
+        Returns:
+            None
+        """
         self.key_selector = key_selector
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        return (item for item in sorted(source, key=self.key_selector))
+    def __call__(self, source: Iterable[T]) -> Iterable[T]:
+        """Apply the order by operation on the source sequence.
+
+        Args:
+            source (Iterable[T]): The source sequence to order.
+
+        Yields:
+            Iterable[T]: The ordered sequence of elements.
+
+        Returns:
+            None
+        """
+        yield from (item for item in sorted(source, key=self.key_selector))
 
 
-class OrderByDescending(Query):
+class OrderByDescending(Unary):
+    """Represents an operation that orders the elements in a sequence in descending order
+    based on a key selector function.
+
+    Args:
+        key_selector: A callable that takes an element of type T and returns a key of type U.
+
+    Returns:
+        An iterable containing the elements in descending order based on the key selector.
+    """
+
     def __init__(self, key_selector: Callable[[T], U]) -> None:
+        """Initialize the OrderByDescending operation.
+
+        Args:
+            key_selector: A function that maps elements to keys used for sorting.
+        """
         self.key_selector = key_selector
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        return (item for item in sorted(source, key=self.key_selector, reverse=True))
+    def __call__(self, source: Iterable[T]) -> Iterable[T]:
+        """Orders the elements in the source iterable in descending order based on the key selector.
+
+        Args:
+            source: An iterable of elements to be sorted.
+
+        Returns:
+            An iterable containing the elements in descending order based on the key selector.
+        """
+        yield from (item for item in sorted(source, key=self.key_selector, reverse=True))
 
 
-class ThenBy(Query):
+class ThenBy(Unary):
+    """Represents an operation that performs a subsequent ordering of elements in a sequence
+    based on a key selector function.
+
+    Args:
+        key_selector: A callable that takes an element of type T and returns a key of type U.
+
+    Returns:
+        An iterable containing the elements with subsequent ordering based on the key selector.
+    """
+
     def __init__(self, key_selector: Callable[[T], U]) -> None:
+        """Initialize the ThenBy operation.
+
+        Args:
+            key_selector: A function that maps elements to keys used for sorting.
+        """
         self.key_selector = key_selector
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        return (item for item in sorted(source, key=self.key_selector, reverse=False))
+    def __call__(self, source: Iterable[T]) -> Iterable[T]:
+        """Orders the elements in the source iterable with subsequent ordering based on the key selector.
+
+        Args:
+            source: An iterable of elements to be sorted.
+
+        Returns:
+            An iterable containing the elements with subsequent ordering based on the key selector.
+        """
+        yield from (item for item in sorted(source, key=self.key_selector, reverse=False))
 
 
-class ThenByDescending(Query):
+class ThenByDescending(Unary):
+    """Unary operation that performs a secondary descending order based on a key selector."""
+
     def __init__(self, key_selector: Callable[[T], U]) -> None:
+        """Initialize the ThenByDescending operation.
+
+        Args:
+            key_selector: A function that maps elements to keys used for sorting.
+        """
         self.key_selector = key_selector
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        return (item for item in sorted(source, key=self.key_selector, reverse=True))
+    def __call__(self, source: Iterable[T]) -> Iterable[T]:
+        """Apply the ThenByDescending operation to the source iterable.
+
+        Args:
+            source: The source iterable.
+
+        Yields:
+            The elements of the source iterable with a secondary descending order based on the key selector.
+        """
+        yield from (item for item in sorted(source, key=self.key_selector, reverse=True))
 
 
 class Join(Binary):
+    """Binary operation that joins two iterables based on key selectors and applies a result selector."""
+
     def __init__(
         self,
-        inner: list[U],
+        inner: Iterable[U],
         outer_key_selector: Callable[[T], K],
         inner_key_selector: Callable[[U], K],
         result_selector: Callable[[T, U], V],
@@ -132,8 +304,8 @@ class Join(Binary):
 
     def __call__(
         self,
-        source1: Generator[T, None, None],
-        source2: Generator[U, None, None],
+        source1: Iterable[T],
+        source2: Iterable[U],
     ) -> Generator[V, None, None]:
         lookup = {self.inner_key_selector(item): item for item in self.inner}
         for item in source1:
@@ -145,10 +317,10 @@ class Join(Binary):
 class GroupJoin(Binary):
     def __init__(
         self,
-        inner: list[U],
+        inner: Iterable[U],
         outer_key_selector: Callable[[T], K],
         inner_key_selector: Callable[[U], K],
-        result_selector: Callable[[T, list[U]], V],
+        result_selector: Callable[[T, Iterable[U]], V],
     ) -> None:
         self.inner = inner
         self.outer_key_selector = outer_key_selector
@@ -157,8 +329,8 @@ class GroupJoin(Binary):
 
     def __call__(
         self,
-        source1: Generator[T, None, None],
-        source2: Generator[U, None, None],
+        source1: Iterable[T],
+        source2: Iterable[U],
     ) -> Generator[V, None, None]:
         lookup = {self.inner_key_selector(item): item for item in self.inner}
         for item in source1:
@@ -170,98 +342,103 @@ class GroupJoin(Binary):
 class Zip(Binary):
     def __call__(
         self,
-        source1: Generator[T, None, None],
-        source2: Generator[U, None, None],
+        source1: Iterable[T],
+        source2: Iterable[U],
     ) -> Generator[tuple[T, U], None, None]:
-        return zip(source1, source2)
+        yield from zip(source1, source2)
 
 
-class All(Query):
+class All(Unary):
     def __init__(self, predicate: Callable[[T], bool]) -> None:
         self.predicate = predicate
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
+    def __call__(self, source: Iterable[T]) -> bool:
         return all(self.predicate(item) for item in source)
 
 
-class Any(Query):
+class Any(Unary):
     def __init__(self, predicate: Optional[Callable[[T], bool]] = None) -> None:
         self.predicate = predicate
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
+    def __call__(self, source: Iterable[T]) -> bool:
         if self.predicate is None:
             return any(source)
+
         return any(self.predicate(item) for item in source)
 
 
-class Contains(Query):
+class Contains(Unary):
     def __init__(self, value: T) -> None:
         self.value = value
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
+    def __call__(self, source: Iterable[T]) -> bool:
         return self.value in source
 
 
-class Count(Query):
+class Count(Unary):
     def __init__(self, predicate: Callable[[T], bool] = None) -> None:
         self.predicate = predicate
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[int, None, None]:
-        if self.predicate:
+    def __call__(self, source: Iterable[T]) -> int:
+        if self.predicate is not None:
             return sum(1 for item in source if self.predicate(item))
         else:
             return sum(1 for _ in source)
 
 
-class Sum(Query):
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+class Sum(Unary):
+    def __call__(self, source: Iterable[T]) -> T:
         return sum(source)
 
 
-class Min(Query):
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+class Min(Unary):
+    def __call__(self, source: Iterable[T]) -> T:
         return min(source)
 
 
-class Max(Query):
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+class Max(Unary):
+    def __call__(self, source: Iterable[T]) -> T:
         return max(source)
 
 
-class Average(Query):
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[float], None, None]:
-        total = 0
-        count = 0
+class Average(Unary):
+    def __call__(self, source: Iterable[T]) -> T:
+        total, count = 0, 00
         for item in source:
             total += item
             count += 1
+
         if count > 0:
             return total / count
+
         return None
 
 
-class Aggregate(Query):
+class Aggregate(Unary):
     def __init__(self, func: Callable[[T, T], T]) -> None:
         self.func = func
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
+    def __call__(self, source: Iterable[T]) -> T:
         iterator = iter(source)
+
         try:
             result = next(iterator)
         except StopIteration:
             msg = "Sequence contains no elements."
             raise ValueError(msg)
+
         for item in iterator:
             result = self.func(result, item)
+
         return result
 
 
 class Concat(Binary):
     def __call__(
         self,
-        source1: Generator[T, None, None],
-        source2: Generator[T, None, None],
-    ) -> Generator[T, None, None]:
+        source1: Iterable[T],
+        source2: Iterable[T],
+    ) -> Iterable[T]:
         yield from source1
         yield from source2
 
@@ -269,73 +446,78 @@ class Concat(Binary):
 class Union(Binary):
     def __call__(
         self,
-        source1: Generator[T, None, None],
-        source2: Generator[T, None, None],
-    ) -> Generator[T, None, None]:
+        source1: Iterable[T],
+        source2: Iterable[T],
+    ) -> Iterable[T]:
         yield from set(source1).union(source2)
 
 
 class Intersect(Binary):
     def __call__(
         self,
-        source1: Generator[T, None, None],
-        source2: Generator[T, None, None],
-    ) -> Generator[T, None, None]:
+        source1: Iterable[T],
+        source2: Iterable[T],
+    ) -> Iterable[T]:
         yield from set(source1).intersection(source2)
 
 
 class Except(Binary):
     def __call__(
         self,
-        source1: Generator[T, None, None],
-        source2: Generator[T, None, None],
-    ) -> Generator[T, None, None]:
+        source1: Iterable[T],
+        source2: Iterable[T],
+    ) -> Iterable[T]:
         yield from set(source1).difference(source2)
 
 
-class First(Query):
+class First(Unary):
     def __init__(self, predicate: Optional[Callable[[T], bool]] = None) -> None:
         self.predicate = predicate
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+    def __call__(self, source: Iterable[T]) -> T:
         if self.predicate is None:
             try:
                 return next(iter(source))
             except StopIteration:
                 msg = "Sequence contains no elements."
                 raise ValueError(msg)
+
         for item in source:
             if self.predicate(item):
                 return item
+
         msg = "Sequence contains no matching element."
         raise ValueError(msg)
 
 
-class FirstOrDefault(Query):
+class FirstOrDefault(Unary):
     def __init__(
         self,
         predicate: Optional[Callable[[T], bool]] = None,
         default: Optional[T] = None,
     ) -> None:
         self.predicate = predicate
+        self.default = default
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+    def __call__(self, source: Iterable[T]) -> T:
         if self.predicate is None:
             try:
                 return next(iter(source))
             except StopIteration:
-                return None
+                return self.default
+
         for item in source:
             if self.predicate(item):
                 return item
-        return None
+
+        return self.default
 
 
-class Last(Query):
+class Last(Unary):
     def __init__(self, predicate: Optional[Callable[[T], bool]] = None) -> None:
         self.predicate = predicate
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+    def __call__(self, source: Iterable[T]) -> T:
         if self.predicate is None:
             try:
                 result = None
@@ -345,43 +527,49 @@ class Last(Query):
             except StopIteration:
                 msg = "Sequence contains no elements."
                 raise ValueError(msg)
+
         for item in source:
             if self.predicate(item):
                 result = item
+
         if result is None:
             msg = "Sequence contains no matching element."
             raise ValueError(msg)
+
         return result
 
 
-class LastOrDefault(Query):
+class LastOrDefault(Unary):
     def __init__(
         self,
         predicate: Optional[Callable[[T], bool]] = None,
         default: Optional[T] = None,
     ) -> None:
         self.predicate = predicate
+        self.default = default
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+    def __call__(self, source: Iterable[T]) -> T:
         if self.predicate is None:
             try:
-                result = None
+                result = self.default
                 for item in source:
                     result = item
                 return result
             except StopIteration:
-                return None
+                return self.default
+
         for item in source:
             if self.predicate(item):
                 return item
-        return None
+
+        return self.default
 
 
-class Single(Query):
+class Single(Unary):
     def __init__(self, predicate: Optional[Callable[[T], bool]] = None) -> None:
         self.predicate = predicate
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+    def __call__(self, source: Iterable[T]) -> T:
         items = iter(source)
 
         if self.predicate is None:
@@ -396,30 +584,35 @@ class Single(Query):
             except StopIteration:
                 msg = "Sequence contains no elements."
                 raise ValueError(msg)
+
         match_count = 0
         result = None
         for item in source:
             if self.predicate(item):
                 match_count += 1
                 result = item
+
         if match_count == 0:
             msg = "Sequence contains no matching element."
             raise ValueError(msg)
+
         if match_count > 1:
             msg = "Sequence contains more than one matching element."
             raise ValueError(msg)
+
         return result
 
 
-class SingleOrDefault(Query):
+class SingleOrDefault(Unary):
     def __init__(
         self,
         predicate: Optional[Callable[[T], bool]] = None,
         default: Optional[T] = None,
     ) -> None:
         self.predicate = predicate
+        self.default = default
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+    def __call__(self, source: Iterable[T]) -> T:
         items = iter(source)
 
         if self.predicate is None:
@@ -432,24 +625,27 @@ class SingleOrDefault(Query):
                 except StopIteration:
                     return result
             except StopIteration:
-                return None
+                return self.default
+
         match_count = 0
-        result = None
+        result = self.default
         for item in source:
             if self.predicate(item):
                 match_count += 1
                 result = item
+
         if match_count > 1:
             msg = "Sequence contains more than one matching element."
             raise ValueError(msg)
+
         return result
 
 
-class ElementAt(Query):
+class ElementAt(Unary):
     def __init__(self, index: int) -> None:
         self.index = index
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+    def __call__(self, source: Iterable[T]) -> T:
         try:
             return next(item for i, item in enumerate(source) if i == self.index)
         except StopIteration:
@@ -457,71 +653,57 @@ class ElementAt(Query):
             raise ValueError(msg)
 
 
-class ElementAtOrDefault(Query):
+class ElementAtOrDefault(Unary):
     def __init__(self, index: int, default: Optional[T] = None) -> None:
         self.index = index
+        self.default = default
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[Optional[T], None, None]:
+    def __call__(self, source: Iterable[T]) -> T:
         try:
             return next(item for i, item in enumerate(source) if i == self.index)
         except StopIteration:
-            return None
+            return self.default
 
 
 class DefaultIfEmpty(Unary):
     def __init__(self, default_value: Optional[T] = None) -> None:
         self.default_value = default_value
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
+    def __call__(self, source: Iterable[T]) -> UnionType[T, Iterable[T]]:
         try:
-            first_item = next(iter(source))
+            next(iter(source))
         except StopIteration:
             if self.default_value is not None:
                 yield self.default_value
             return
-        yield first_item
+
         yield from source
 
 
-class ToDictionary(Query):
-    def __init__(
-        self,
-        key_selector: Callable[[T], K],
-        value_selector: Optional[Callable[[T], V]] = None,
-    ) -> None:
-        self.key_selector = key_selector
-        self.value_selector = value_selector
-
-    def __call__(self, source: Generator[T, None, None]) -> Generator[dict[K, V], None, None]:
-        if self.value_selector is None:
-            return {self.key_selector(item): item for item in source}
-        return {self.key_selector(item): self.value_selector(item) for item in source}
-
-
-class OfType(Query):
+class OfType(Unary):
     def __init__(self, type_filter: type[U]) -> None:
         self.type_filter = type_filter
 
-    def __call__(self, source: Generator[T, None, None]) -> Generator[U, None, None]:
-        return (item for item in source if isinstance(item, self.type_filter))
+    def __call__(self, source: Iterable[T]) -> Iterable[T]:
+        yield from (item for item in source if isinstance(item, self.type_filter))
 
 
 class Queryable(Iterable[T]):
     def __init__(self, collection: Iterable[T]) -> None:
         self.collection = collection
 
-    def __call__(self) -> Generator[T, None, None]:
-        return iter(self)
-
-    def __iter__(self) -> Generator[T, None, None]:
+    def __iter__(self) -> Iterable[T]:
         yield from self.collection
 
     @classmethod
-    def range(cls, start: int, stop: int, step: int = 1) -> "Queryable":
+    def range(cls, start: int, stop: Optional[int] = None, step: int = 1) -> "Queryable":
+        if stop is None:
+            start, stop = 0, start
+
         return cls(range(start, stop, step))
 
     @classmethod
-    def empty() -> "Queryable":
+    def empty(cls) -> "Queryable":
         return cls([])
 
     def query(self) -> "Queryable":
@@ -560,11 +742,25 @@ class Queryable(Iterable[T]):
     def then_by_descending(self, key_selector: Callable[[T], U]) -> "Queryable":
         return Queryable(ThenByDescending(key_selector)(self))
 
+    def group_join(
+        self,
+        inner: Iterable[U],
+        outer_key_selector: Callable[[T], K],
+        inner_key_selector: Callable[[U], K],
+        result_selector: Callable[[T, Iterable[U]], V],
+    ) -> "Queryable":
+        return Queryable(
+            GroupJoin(inner, outer_key_selector, inner_key_selector, result_selector)(self, inner),
+        )
+
+    def zip(self, other: Iterable[T]) -> "Queryable[T]":
+        return Queryable(Zip()(self, other))
+
     def concat(self, other: Iterable[T]) -> "Queryable[T]":
         return Queryable(chain(self, other))
 
     def aggregate(self, func: Callable[[T, T], T]) -> T:
-        return Queryable(Aggregate(func)(self))
+        return Aggregate(func)(self)
 
     def union(self, other: Iterable[T]) -> "Queryable[T]":
         return Queryable(Union()(self, other))
@@ -578,8 +774,23 @@ class Queryable(Iterable[T]):
     def any(self, predicate: Callable[[T], bool] = None) -> bool:
         return Any(predicate)(self)
 
+    def contains(self, value: T) -> T:
+        return Contains(value)(self)
+
     def count(self, predicate: Callable[[T], bool] = None) -> int:
         return Count(predicate)(self)
+
+    def sum(self) -> int:
+        return Sum()(self)
+
+    def min(self) -> int:
+        return Min()(self)
+
+    def max(self) -> int:
+        return Max()(self)
+
+    def average(self) -> int:
+        return Average()(self)
 
     def except_for(self, other: Iterable[T]) -> "Queryable[T]":
         return Queryable(Except()(self, other))
@@ -621,12 +832,11 @@ class Queryable(Iterable[T]):
         return ElementAtOrDefault(index, default)(self)
 
     def default_if_empty(self, default: T) -> "Queryable[T]":
-        query = DefaultIfEmpty(default)
-        return Queryable(query(self))
+        return Queryable(DefaultIfEmpty(default)(self))
 
     def join(
         self,
-        inner: list[U],
+        inner: Iterable[U],
         outer_key_selector: Callable[[T], K],
         inner_key_selector: Callable[[U], K],
         result_selector: Callable[[T, U], V],
@@ -637,3 +847,13 @@ class Queryable(Iterable[T]):
 
     def to_list(self) -> list[T]:
         return list(self)
+
+    def to_dictionary(
+        self,
+        key_selector: Callable[[T], K],
+        value_selector: Optional[Callable[[T], V]] = None,
+    ) -> dict[K, V]:
+        if value_selector is None:
+            return {key_selector(item): item for item in self}
+
+        return {key_selector(item): value_selector(item) for item in self}
