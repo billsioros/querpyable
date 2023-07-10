@@ -203,7 +203,7 @@ class Contains(Query):
 
 
 class Count(Query):
-    def __init__(self, predicate: Callable[[T], bool] = None) -> None:
+    def __init__(self, predicate: Callable[[T], bool] | None = None) -> None:
         self.predicate = predicate
 
     def __call__(self, source: Generator[T, None, None]) -> Generator[int, None, None]:
@@ -575,41 +575,41 @@ class Queryable(Iterable[T]):
     def all(self, predicate: Callable[[T], bool]) -> bool:
         return All(predicate)(self)
 
-    def any(self, predicate: Callable[[T], bool] = None) -> bool:
+    def any(self, predicate: Callable[[T], bool] | None = None) -> bool:
         return Any(predicate)(self)
 
-    def count(self, predicate: Callable[[T], bool] = None) -> int:
+    def count(self, predicate: Callable[[T], bool] | None = None) -> int:
         return Count(predicate)(self)
 
     def except_for(self, other: Iterable[T]) -> "Queryable[T]":
         return Queryable(Except()(self, other))
 
-    def first(self, predicate: Callable[[T], bool] = None) -> T:
+    def first(self, predicate: Callable[[T], bool] | None = None) -> T:
         return First(predicate)(self)
 
     def first_or_default(
         self,
-        predicate: Callable[[T], bool] = None,
+        predicate: Callable[[T], bool] | None = None,
         default: Optional[T] = None,
     ) -> T:
         return FirstOrDefault(predicate, default)(self)
 
-    def last(self, predicate: Callable[[T], bool] = None) -> T:
+    def last(self, predicate: Callable[[T], bool] | None = None) -> T:
         return Last(predicate)(self)
 
     def last_or_default(
         self,
-        predicate: Callable[[T], bool] = None,
+        predicate: Callable[[T], bool] | None = None,
         default: Optional[T] = None,
     ) -> T:
         return LastOrDefault(predicate, default)(self)
 
-    def single(self, predicate: Callable[[T], bool] = None) -> T:
+    def single(self, predicate: Callable[[T], bool] | None = None) -> T:
         return Single(predicate)(self)
 
     def single_or_default(
         self,
-        predicate: Callable[[T], bool] = None,
+        predicate: Callable[[T], bool] | None = None,
         default: Optional[T] = None,
     ) -> T:
         return SingleOrDefault(predicate, default)(self)
