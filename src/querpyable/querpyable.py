@@ -1,7 +1,7 @@
 """A Python implementation of LINQ."""
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Generator, Iterable, Iterator
 from itertools import chain
 from typing import Optional, TypeVar
 
@@ -54,7 +54,7 @@ class Take(Query):
         self.count = count
 
     def __call__(self, source: Generator[T, None, None]) -> Generator[T, None, None]:
-        return (item for _, item in zip(range(self.count), source))
+        return (item for _, item in zip(range(self.count), source, strict=False))
 
 
 class Skip(Query):
@@ -173,7 +173,7 @@ class Zip(Binary):
         source1: Generator[T, None, None],
         source2: Generator[U, None, None],
     ) -> Generator[tuple[T, U], None, None]:
-        return zip(source1, source2)
+        return zip(source1, source2, strict=False)
 
 
 class All(Query):
@@ -513,7 +513,7 @@ class Queryable(Iterable[T]):
     def __call__(self) -> Generator[T, None, None]:
         return iter(self)
 
-    def __iter__(self) -> Generator[T, None, None]:
+    def __iter__(self) -> Iterator[T]:
         yield from self.collection
 
     @classmethod
