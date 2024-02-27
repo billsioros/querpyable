@@ -564,19 +564,22 @@ test = ["autoflake", "black", "isort", "pytest"]
 
 [[package]]
 name = "mkdocstrings"
-version = "0.21.2"
+version = "0.24.1"
 description = "Automatic documentation from sources, for MkDocs."
 category = "dev"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 
 [package.dependencies]
+click = ">=7.0"
+importlib-metadata = {version = ">=4.6", markers = "python_version < \"3.10\""}
 Jinja2 = ">=2.11.1"
 Markdown = ">=3.3"
 MarkupSafe = ">=1.1"
-mkdocs = ">=1.2"
+mkdocs = ">=1.4"
 mkdocs-autorefs = ">=0.3.1"
 mkdocstrings-python = {version = ">=0.5.2", optional = true, markers = "extra == \"python\""}
+platformdirs = ">=2.2.0"
 pymdown-extensions = ">=6.3"
 typing-extensions = {version = ">=4.1", markers = "python_version < \"3.10\""}
 
@@ -1667,8 +1670,8 @@ mkdocs-redirects = [
     {file = "mkdocs-redirects-1.2.0.tar.gz", hash = "sha256:ddd38267d49fdfa19fb2f25b4aed2fb53f0496c818bf3018009c8eaf6676a327"},
 ]
 mkdocstrings = [
-    {file = "mkdocstrings-0.21.2-py3-none-any.whl", hash = "sha256:949ef8da92df9d692ca07be50616459a6b536083a25520fd54b00e8814ce019b"},
-    {file = "mkdocstrings-0.21.2.tar.gz", hash = "sha256:304e56a2e90595708a38a13a278e538a67ad82052dd5c8b71f77a604a4f3d911"},
+    {file = "mkdocstrings-0.24.1-py3-none-any.whl", hash = "sha256:b4206f9a2ca8a648e222d5a0ca1d36ba7dee53c88732818de183b536f9042b5d"},
+    {file = "mkdocstrings-0.24.1.tar.gz", hash = "sha256:cc83f9a1c8724fc1be3c2fa071dd73d91ce902ef6a79710249ec8d0ee1064401"},
 ]
 mkdocstrings-python = [
     {file = "mkdocstrings_python-1.0.0-py3-none-any.whl", hash = "sha256:c59d67009a7a85172f4da990d8523e95606b6a1ff93a22a2351ad3b5f8cafed1"},
