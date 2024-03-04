@@ -44,10 +44,10 @@
       alt="PyPI - License"
     />
   </a>
-  <a href="https://gitpod.io/from-referrer/">
+  <a href="https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/billsioros/querpyable">
     <img
-      src="https://img.shields.io/badge/Open%20on-Gitpod-blue?logo=gitpod&style=flat"
-      alt="Open on Gitpod"
+      src="https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode"
+      alt="Open in GitHub Codespaces"
     />
   </a>
   <a href="https://github.com/billsioros/cookiecutter-pypackage">
@@ -65,19 +65,18 @@
       src="https://img.shields.io/badge/Buy%20me%20a-coffee-FFDD00.svg?style=flat&logo=buymeacoffee"
       alt="Buy me a coffee">
   </a>
-  <a href="https://app.fossa.com/projects/custom%2B27372%2Fgithub.com%2Fbillsioros%2Fquerpyable/refs/branch/fix%2Fworking-version/f7d8508218ccd7057042a87c424029d8c98382d6">
+  <a href="https://github.com/billsioros/querpyable/actions/workflows/dependency_review.yml">
     <img
-      src="https://app.fossa.com/api/projects/custom%2B27372%2Fgithub.com%2Fbillsioros%2Fquerpyable.svg?type=shield"
-      alt="FOSSA Status"
+      src="https://github.com/billsioros/querpyable/actions/workflows/dependency_review.yml/badge.svg"
+      alt="Dependency Review"
     />
   </a>
 </p>
 
 ## :bulb: Example
 
-> Calculating the first 10000 primes
-
 ```python
+# Calculating the first 10000 primes
 Queryable \
   .range(2, 1_000_000) \
   .where(lambda n: all(n % i != 0 for i in range(2, int(n ** 0.5) + 1))) \
@@ -88,6 +87,21 @@ Queryable \
 
 ```bash
 pip install querpyable
+```
+
+In order to locally set up the project please follow the instructions below:
+
+```shell
+# Set up the GitHub repository
+git clone https://github.com/billsioros/querpyable
+
+# Create a virtual environment using poetry and install the required dependencies
+poetry shell
+poetry install
+
+# Install pre-commit hooks
+pre-commit install --install-hooks
+pre-commit autoupdate
 ```
 
 ## :book: Documentation

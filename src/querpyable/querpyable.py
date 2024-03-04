@@ -99,7 +99,8 @@ class Take(Unary):
         self.count = count
 
     def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Returns a specified number of contiguous elements from the start of a sequence.
+        """Returns a specified number of contiguous elements from the start of a
+        sequence.
 
         Args:
             source (Iterable[T]): The source sequence.
@@ -160,7 +161,8 @@ class SelectMany(Unary):
         self.selector = selector
 
     def __call__(self, source: Iterable[T]) -> Iterable[U]:
-        """Projects each element of the source sequence to an iterable and flattens the resulting sequences into one sequence.
+        """Projects each element of the source sequence to an iterable and flattens the
+        resulting sequences into one sequence.
 
         Args:
             selector (Callable[[T], Iterable[U]]): A function that projects each element of the source sequence to an iterable.
@@ -203,8 +205,8 @@ class OrderBy(Unary):
 
 
 class OrderByDescending(Unary):
-    """Represents an operation that orders the elements in a sequence in descending order
-    based on a key selector function.
+    """Represents an operation that orders the elements in a sequence in descending
+    order based on a key selector function.
 
     Args:
         key_selector: A callable that takes an element of type T and returns a key of type U.
@@ -222,7 +224,8 @@ class OrderByDescending(Unary):
         self.key_selector = key_selector
 
     def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Orders the elements in the source iterable in descending order based on the key selector.
+        """Orders the elements in the source iterable in descending order based on the
+        key selector.
 
         Args:
             source: An iterable of elements to be sorted.
@@ -234,8 +237,8 @@ class OrderByDescending(Unary):
 
 
 class ThenBy(Unary):
-    """Represents an operation that performs a subsequent ordering of elements in a sequence
-    based on a key selector function.
+    """Represents an operation that performs a subsequent ordering of elements in a
+    sequence based on a key selector function.
 
     Args:
         key_selector: A callable that takes an element of type T and returns a key of type U.
@@ -253,7 +256,8 @@ class ThenBy(Unary):
         self.key_selector = key_selector
 
     def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Orders the elements in the source iterable with subsequent ordering based on the key selector.
+        """Orders the elements in the source iterable with subsequent ordering based on
+        the key selector.
 
         Args:
             source: An iterable of elements to be sorted.
@@ -265,7 +269,9 @@ class ThenBy(Unary):
 
 
 class ThenByDescending(Unary):
-    """Unary operation that performs a secondary descending order based on a key selector."""
+    """Unary operation that performs a secondary descending order based on a key
+    selector.
+    """
 
     def __init__(self, key_selector: Callable[[T], U]) -> None:
         """Initialize the ThenByDescending operation.
@@ -288,7 +294,9 @@ class ThenByDescending(Unary):
 
 
 class Join(Binary):
-    """Binary operation that joins two iterables based on key selectors and applies a result selector."""
+    """Binary operation that joins two iterables based on key selectors and applies a
+    result selector.
+    """
 
     def __init__(
         self,

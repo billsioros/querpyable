@@ -5,11 +5,11 @@ repo_url: "https://github.com/billsioros/querpyable"
 edit_uri: "edit/master/docs/"
 repo_name: "billsioros/querpyable"
 copyright: |
-  Copyright &copy; 2023-2023 <a href="https://github.com/billsioros" target="_blank" rel="noopener">Vasilis Sioros</a>
+  Copyright &copy; 2024-2024 <a href="https://github.com/billsioros" target="_blank" rel="noopener">Vasilis Sioros</a>
 nav:
   - Overview: index.md
   - Code Reference:
-      - querpyable: src/querpyable.md
+      - Querpyable: src/querpyable.md
   - Contributing:
       - Contributing Guidelines: CONTRIBUTING.md
       - Code Of Conduct: CODE_OF_CONDUCT.md
@@ -40,15 +40,15 @@ theme:
   palette:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: teal
-      accent: teal
+      primary: red
+      accent: red
       toggle:
         icon: material/weather-night
         name: Switch to light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: green
-      accent: green
+      primary: red
+      accent: red
       toggle:
         icon: material/weather-sunny
         name: Switch to dark mode
@@ -58,8 +58,6 @@ theme:
 plugins:
   - search
   - mkdocstrings:
-      watch:
-        - src/querpyable
       default_handler: python
       handlers:
         python:
@@ -89,6 +87,8 @@ markdown_extensions:
   - toc:
       permalink: ¤
   - mdx_truly_sane_lists
+watch:
+  - src/querpyable
 extra:
   social:
     - icon: fontawesome/brands/github
