@@ -1,0 +1,20 @@
+{
+  "template": "https://github.com/billsioros/cookiecutter-pypackage",
+  "commit": "bc3d3a703911af1dabcbf711ddc779d33721c777",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "project_name": "querpyable",
+      "package_name": "querpyable",
+      "project_description": "A Python implementation of LINQ",
+      "author": "Vasilis Sioros",
+      "email": "billsioros97@gmail.com",
+      "github_user": "billsioros",
+      "github_repository": "https://github.com/billsioros/querpyable",
+      "version": "2.0.0",
+      "license": "mit",
+      "_template": "https://github.com/billsioros/cookiecutter-pypackage"
+    }
+  },
+  "directory": null
+}

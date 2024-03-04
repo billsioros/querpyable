@@ -5,22 +5,22 @@ ci:
   autoupdate_commit_msg: 'ci: `pre-commit.ci` auto update'
 repos:
   - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
       - id: isort
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 24.2.0
     hooks:
       - id: black
         language_version: python3
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.269
+    rev: v0.3.0
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
         exclude: ^docs|tests
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
+    rev: v2.2.6
     hooks:
       - id: codespell
         files: \.(py|md)$
@@ -30,14 +30,8 @@ repos:
       - id: interrogate
         args: [-v, --fail-under=100]
         files: ^src/
-  - repo: https://github.com/PyCQA/pydocstyle
-    rev: 6.3.0
-    hooks:
-      - id: pydocstyle
-        files: ^src/
-        additional_dependencies: [toml]
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: check-added-large-files
       - id: check-ast
@@ -55,13 +49,13 @@ repos:
       - id: check-toml
       - id: debug-statements
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.3.0
+    rev: v1.8.0
     hooks:
       - id: mypy
         files: ^src
         additional_dependencies: [types-all]
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: 3.2.2
+    rev: v3.16.0
     hooks:
       - id: commitizen
         stages: [commit-msg]
@@ -72,11 +66,11 @@ repos:
         stages: [commit-msg]
         args: [--ignore=B6, --msg-filename]
   - repo: https://github.com/editorconfig-checker/editorconfig-checker.python
-    rev: 2.7.1
+    rev: 2.7.3
     hooks:
       - id: editorconfig-checker
   - repo: https://github.com/jendrikseipp/vulture
-    rev: v2.7
+    rev: v2.11
     hooks:
       - id: vulture
   - repo: https://github.com/hadolint/hadolint
@@ -85,16 +79,34 @@ repos:
       - id: hadolint-docker
         args: ['--ignore', 'DL3006']
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.23.0
+    rev: 0.28.0
     hooks:
       - id: check-github-workflows
       - id: check-renovate
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.7.5
+    hooks:
+      - id: docformatter
+        additional_dependencies: [tomli]
+        exclude: tests
+        args: [--config, pyproject.toml]
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.7
+    hooks:
+      - id: bandit
+        additional_dependencies: ["bandit[toml]"]
+        args: ["-c", "pyproject.toml"]
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: 1.7.0
+    hooks:
+      - id: pyproject-fmt
+        args: [--indent, '2']
   - repo: https://github.com/google/yamlfmt
-    rev: v0.9.0
+    rev: v0.11.0
     hooks:
       - id: yamlfmt
   - repo: https://github.com/python-poetry/poetry
-    rev: 1.5.0
+    rev: 1.8.0
     hooks:
       - id: poetry-check
       - id: poetry-lock
