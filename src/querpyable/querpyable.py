@@ -270,8 +270,7 @@ class ThenBy(Unary):
 
 class ThenByDescending(Unary):
     """Unary operation that performs a secondary descending order based on a key
-    selector.
-    """
+    selector."""
 
     def __init__(self, key_selector: Callable[[T], U]) -> None:
         """Initialize the ThenByDescending operation.
@@ -295,8 +294,7 @@ class ThenByDescending(Unary):
 
 class Join(Binary):
     """Binary operation that joins two iterables based on key selectors and applies a
-    result selector.
-    """
+    result selector."""
 
     def __init__(
         self,

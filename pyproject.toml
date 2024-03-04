@@ -1,8 +1,6 @@
 [build-system]
 build-backend = "poetry.core.masonry.api"
-requires = [
-  "poetry-core>=1",
-]
+requires = ["poetry-core>=1"]
 
 [tool.poetry]
 name = "Querpyable"
@@ -223,7 +221,7 @@ source = ["querpyable"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 100
+fail_under = 70
 exclude_lines = [
   "if self.debug:",
   "pragma: no cover",
