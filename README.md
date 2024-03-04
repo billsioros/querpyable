@@ -77,10 +77,37 @@
 
 ```python
 # Calculating the first 10000 primes
-Queryable \
-  .range(2, 1_000_000) \
-  .where(lambda n: all(n % i != 0 for i in range(2, int(n ** 0.5) + 1))) \
-  .take(10000)
+primes = (
+    Queryable.range(2, 1_000_000)
+    .where(lambda n: all(n % i != 0 for i in range(2, int(n**0.5) + 1)))
+    .take(10000)
+    .to_list()
+)
+
+# Calculating Factorials using Aggregate:
+factorial = (
+    Queryable
+    .range(1, 5)
+    .aggregate(lambda result, current: result * current)
+)
+
+# Finding Palindromic Words in a List:
+words = ["level", "hello", "world", "radar", "LINQ", "civic"]
+palindromic_words = (
+    Queryable(words)
+    .where(lambda word: word == word[::-1])
+    .to_list()
+)
+
+# Selecting Unique Characters from a Sentence:
+sentence = "LINQ is fun and powerful"
+unique_characters = (
+    Queryable(sentence)
+    .where(lambda char: char.isalpha())
+    .select(lambda char: char.lower())
+    .distinct()
+    .to_list()
+)
 ```
 
 ## :cd: Installation
