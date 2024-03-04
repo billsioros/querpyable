@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 <!--next-version-placeholder-->
 
+## v2.0.4 (2024-03-04)
+
+### Fix
+
+* Deprecate `python<3.9` ([`b7282b6`](https://github.com/billsioros/querpyable/commit/b7282b6cab55da079364c39d8ef2fbaf075dd987))
+
+**[See all commits in this version](https://github.com/billsioros/querpyable/compare/v2.0.3...v2.0.4)**
+
 ## v2.0.3 (2024-03-04)
 
 ### Fix
