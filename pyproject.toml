@@ -6,7 +6,7 @@ requires = [
 
 [tool.poetry]
 name = "Querpyable"
-version = "2.0.0"
+version = "2.0.1"
 description = "A Python implementation of LINQ"
 readme = "README.md"
 authors = ["Vasilis Sioros <billsioros97@gmail.com>"]

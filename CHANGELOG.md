@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 <!--next-version-placeholder-->
 
+## v2.0.1 (2024-03-04)
+
+### Fix
+
+* Incorporate `cruft` ([`20865c4`](https://github.com/billsioros/querpyable/commit/20865c4348496c8f3f0f52c155ea288b86fa935b))
+
+**[See all commits in this version](https://github.com/billsioros/querpyable/compare/v2.0.0...v2.0.1)**
+
 ## v2.0.0 (2023-05-22)
 ### Feature
 * Rename package ([`e90b26d`](https://github.com/billsioros/querpyable/commit/e90b26deb99414b65913dbac2ec48ab15d8d86ab))
