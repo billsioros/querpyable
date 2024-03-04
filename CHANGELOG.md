@@ -6,6 +6,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 <!--next-version-placeholder-->
 
+## v2.0.3 (2024-03-04)
+
+### Fix
+
+* Trigger deployment ([`3214600`](https://github.com/billsioros/querpyable/commit/32146001c08a470ee30957d4bfa90e5bb120690e))
+* Downgrade `semantic-release` version ([`12cd474`](https://github.com/billsioros/querpyable/commit/12cd47401a97505d301a4ce16c3f2228498ccee4))
+
+**[See all commits in this version](https://github.com/billsioros/querpyable/compare/v2.0.2...v2.0.3)**
+
 ## v2.0.2 (2024-03-04)
 
 ### Fix
