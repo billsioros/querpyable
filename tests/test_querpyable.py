@@ -1,6 +1,6 @@
 import pytest
 
-from querpyable.querpyable import Queryable
+from querpyable import Queryable
 
 
 @pytest.fixture

@@ -1,10 +1,6 @@
-"""A Python implementation of LINQ."""
-
-from abc import ABC, abstractmethod
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from itertools import chain
-from typing import Optional, TypeVar
-from typing import Union as UnionType
+from typing import Optional, TypeVar, Union
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -12,420 +8,530 @@ K = TypeVar("K")
 V = TypeVar("V")
 
 
-class Unary(ABC):
-    """Base class for unary operations."""
-
-    @abstractmethod
-    def __call__(self, source: Iterable[T]) -> Iterable[U]:
-        """Applies an operation to a single source sequence.
+class Queryable(Iterable[T]):
+    def __init__(self, collection: Iterable[T]) -> None:
+        """Initializes a Queryable object.
 
         Args:
-            source (Iterable[T]): The source sequence.
-
-        Yields:
-            Iterable[U]: The resulting sequence after applying the operation.
-        """
-
-
-class Binary(ABC):
-    """Base class for binary operations."""
-
-    @abstractmethod
-    def __call__(
-        self,
-        source1: Iterable[T],
-        source2: Iterable[U],
-    ) -> Iterable[T]:
-        """Applies an operation to two source sequences.
-
-        Args:
-            source1 (Iterable[T]): The first source sequence.
-            source2 (Iterable[U]): The second source sequence.
+            collection (Iterable[T]): The collection to be queried.
 
         Returns:
-            Iterable[T]: The resulting sequence after applying the operation.
+            None: This method does not return any value.
+
+        Example:
+            ```python
+            # Example Usage:
+            data = [1, 2, 3, 4, 5]
+            queryable_data = Queryable(data)
+            ```
         """
+        self.collection = collection
 
+    def __iter__(self) -> Iterator[T]:
+        yield from self.collection
 
-class Where(Unary):
-    def __init__(self, predicate: Callable[[T], bool]) -> None:
-        """Initializes a new instance of the Where class.
+    @classmethod
+    def range(cls, start: int, stop: Optional[int] = None, step: int = 1) -> "Queryable[int]":
+        """Create a Queryable instance representing a range of integers.
 
         Args:
-            predicate (Callable[[T], bool]): A function to test each element for a condition.
-        """
-        self.predicate = predicate
-
-    def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Filters a sequence of values based on a predicate.
-
-        Args:
-            source (Iterable[T]): The source sequence.
-
-        Yields:
-            Iterable[T]: The resulting sequence after filtering elements based on the predicate.
-        """
-        yield from (item for item in source if self.predicate(item))
-
-
-class Select(Unary):
-    def __init__(self, selector: Callable[[T], U]) -> None:
-        """Initializes a new instance of the Select class.
-
-        Args:
-            selector (Callable[[T], U]): A transform function to apply to each element.
-        """
-        self.selector = selector
-
-    def __call__(self, source: Iterable[T]) -> Iterable[U]:
-        """Projects each element of a sequence into a new form.
-
-        Args:
-            source (Iterable[T]): The source sequence.
-
-        Yields:
-            Iterable[U]: The resulting sequence after applying the transform function.
-        """
-        yield from (self.selector(item) for item in source)
-
-
-class Take(Unary):
-    def __init__(self, count: int) -> None:
-        """Initializes a new instance of the Take class.
-
-        Args:
-            count (int): The number of elements to take from the source sequence.
-        """
-        self.count = count
-
-    def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Returns a specified number of contiguous elements from the start of a
-        sequence.
-
-        Args:
-            source (Iterable[T]): The source sequence.
-
-        Yields:
-            Iterable[T]: The resulting sequence with the specified number of elements.
-        """
-        yield from (item for _, item in zip(range(self.count), source))
-
-
-class Skip(Unary):
-    def __init__(self, count: int) -> None:
-        """Initializes a new instance of the Skip class.
-
-        Args:
-            count (int): The number of elements to skip from the start of the source sequence.
-        """
-        self.count = count
-
-    def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Skips the specified number of elements in the sequence.
-
-        Args:
-            source: The input sequence.
+            start (int): The starting value of the range.
+            stop (Optional[int]): The end value (exclusive) of the range. If None, start is considered as the stop, and start is set to 0.
+            step (int): The step between each pair of consecutive values in the range. Default is 1.
 
         Returns:
-            An iterable representing the result of skipping the elements.
+            Queryable: A Queryable instance representing the specified range of integers.
+
+        Example:
+            ```python
+            result = Queryable.range(1, 5, 2)
+            print(result)
+            Queryable([1, 3])
+
+            result = Queryable.range(3)
+            print(result)
+            Queryable([0, 1, 2])
+            ```
         """
-        for index, item in enumerate(source):
-            if index >= self.count:
-                yield item
+        if stop is None:
+            start, stop = 0, start
 
+        return cls(range(start, stop, step))
 
-class Distinct(Unary):
-    def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Filters out duplicate elements from the source sequence.
+    @classmethod
+    def empty(cls) -> "Queryable[T]":
+        """Create an empty instance of the Queryable class.
+
+        This class method returns a new Queryable instance initialized with an empty list.
+
+        Returns:
+            Queryable: A new Queryable instance with an empty list.
+
+        Examples:
+            ```python
+            empty_queryable = Queryable.empty()
+            print(empty_queryable)  # Output: Queryable([])
+            ```
+        """
+        return cls([])
+
+    def where(self, predicate: Callable[[T], bool]) -> "Queryable[T]":
+        """Filters the elements of the Queryable based on a given predicate.
 
         Args:
-            source (Iterable[T]): The source sequence.
+            predicate (Callable[[T], bool]): A function that takes an element of the Queryable
+                and returns a boolean indicating whether the element should be included in the result.
 
-        Yields:
-            T: The unique elements from the source sequence.
+        Returns:
+            Queryable: A new Queryable containing the elements that satisfy the given predicate.
+
+        Example:
+            ```python
+            # Create a Queryable with numbers from 1 to 5
+            numbers = Queryable([1, 2, 3, 4, 5])
+
+            # Define a predicate to filter even numbers
+            def is_even(n):
+                return n % 2 == 0
+
+            # Use the 'where' method to filter even numbers
+            result = numbers.where(is_even)
+
+            # Display the result
+            print(list(result))
+            # Output: [2, 4]
+            ```
         """
-        seen = set()
-        for item in source:
-            if item not in seen:
-                seen.add(item)
-                yield item
+        return Queryable(item for item in self if predicate(item))
 
-
-class SelectMany(Unary):
-    def __init__(self, selector: Callable[[T], Iterable[U]]) -> None:
-        """Initializes a new instance of the SelectMany class.
+    def select(self, selector: Callable[[T], U]) -> "Queryable[T]":
+        """Projects each element of the Queryable using the provided selector function.
 
         Args:
-            selector (Callable[[T], Iterable[U]]): A function that projects each element of the source sequence to an iterable.
-        """
-        self.selector = selector
+            selector (Callable[[T], U]): A function that maps elements of the Queryable to a new value.
 
-    def __call__(self, source: Iterable[T]) -> Iterable[U]:
-        """Projects each element of the source sequence to an iterable and flattens the
+        Returns:
+            Queryable: A new Queryable containing the results of applying the selector function to each element.
+
+        Example:
+            ```python
+            # Example usage of select method
+            def double(x):
+                return x * 2
+
+            data = Queryable([1, 2, 3, 4, 5])
+            result = data.select(double)
+
+            # The 'result' Queryable will contain [2, 4, 6, 8, 10]
+            ```
+        """
+        return Queryable(selector(item) for item in self)
+
+    def distinct(self) -> "Queryable[T]":
+        """Returns a new Queryable containing distinct elements from the original
+        Queryable.
+
+        Returns:
+            Queryable: A new Queryable with distinct elements.
+
+        Example:
+            ```python
+            data = [1, 2, 2, 3, 4, 4, 5]
+            queryable_data = Queryable(data)
+
+            distinct_queryable = queryable_data.distinct()
+
+            # Result: Queryable([1, 2, 3, 4, 5])
+            ```
+        """
+
+        def _():
+            seen = set()
+            for item in self:
+                if item not in seen:
+                    seen.add(item)
+                    yield item
+
+        return Queryable(_())
+
+    def skip(self, count: int) -> "Queryable[T]":
+        """Skips the specified number of elements from the beginning of the Queryable.
+
+        Args:
+            count (int): The number of elements to skip.
+
+        Returns:
+            Queryable: A new Queryable object containing the remaining elements after skipping.
+
+        Example:
+            ```python
+            # Create a Queryable with elements [1, 2, 3, 4, 5]
+            queryable = Queryable([1, 2, 3, 4, 5])
+
+            # Skip the first 2 elements
+            result = queryable.skip(2)
+
+            # The result should contain elements [3, 4, 5]
+            assert list(result) == [3, 4, 5]
+            ```
+        """
+        return Queryable(item for index, item in enumerate(self) if index >= count)
+
+    def take(self, count: int) -> "Queryable[T]":
+        """Returns a new Queryable containing the first 'count' elements of the current
+        Queryable.
+
+        Parameters:
+        - count (int): The number of elements to take from the current Queryable.
+
+        Returns:
+        - Queryable: A new Queryable containing the first 'count' elements.
+
+        Example:
+        ```python
+        # Example usage of take method
+        data = Queryable([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        result = data.take(3)
+
+        print(result.to_list())  # Output: [1, 2, 3]
+        ```
+        """
+        return Queryable(item for _, item in zip(range(count), self))
+
+    def of_type(self, type_filter: type[U]) -> "Queryable[T]":
+        """Filters the elements of the Queryable to include only items of a specific
+        type.
+
+        Args:
+            type_filter (type): The type to filter the elements by.
+
+        Returns:
+            Queryable: A new Queryable containing only elements of the specified type.
+
+        Example:
+            ```python
+            # Create a Queryable with mixed types
+            data = [1, "two", 3.0, "four", 5]
+
+            # Create a Queryable instance
+            queryable_data = Queryable(data)
+
+            # Filter the Queryable to include only integers
+            result = queryable_data.of_type(int)
+
+            # Print the filtered result
+            print(result)  # Output: Queryable([1, 5])
+            ```
+        """
+        return Queryable(item for item in self if isinstance(item, type_filter))
+
+    def select_many(self, selector: Callable[[T], Iterable[U]]) -> "Queryable[T]":
+        """Projects each element of the sequence to an iterable and flattens the
         resulting sequences into one sequence.
 
         Args:
-            selector (Callable[[T], Iterable[U]]): A function that projects each element of the source sequence to an iterable.
-
-        Yields:
-            U: The flattened sequence of projected elements.
-        """
-        for item in source:
-            yield from self.selector(item)
-
-
-class OrderBy(Unary):
-    """A class representing an order by operation on a sequence of elements."""
-
-    def __init__(self, key_selector: Callable[[T], U]) -> None:
-        """Initialize a new instance of the OrderBy class.
-
-        Args:
-            key_selector (Callable[[T], U]): A callable object that takes an element
-                from the source sequence and returns a key used for sorting.
+            selector (Callable[[T], Iterable[U]]): A function that transforms each element of
+                the sequence into an iterable.
 
         Returns:
-            None
-        """
-        self.key_selector = key_selector
+            Queryable: A new Queryable instance containing the flattened sequence.
 
-    def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Apply the order by operation on the source sequence.
+        Example:
+            ```python
+            # Example usage:
+            def get_digits(n: int) -> Iterable[int]:
+                return (int(digit) for digit in str(n))
+
+            numbers = Queryable([123, 456, 789])
+            result = numbers.select_many(get_digits)
+
+            print(list(result))
+            # Output: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            ```
+        """
+
+        def _():
+            for item in self:
+                yield from selector(item)
+
+        return Queryable(_())
+
+    def order_by(self, key_selector: Callable[[T], U]) -> "Queryable[T]":
+        """Orders the elements of the Queryable based on a key selector function.
 
         Args:
-            source (Iterable[T]): The source sequence to order.
-
-        Yields:
-            Iterable[T]: The ordered sequence of elements.
+            key_selector (Callable[[T], U]): A function that takes an element of the Queryable
+                and returns a value used for sorting.
 
         Returns:
-            None
+            Queryable: A new Queryable containing the elements sorted based on the key selector.
+
+        Example:
+            ```python
+            # Create a Queryable with a list of tuples
+            data = Queryable([(1, "apple"), (3, "banana"), (2, "orange")])
+
+            # Order the Queryable based on the first element of each tuple (numeric order)
+            result = data.order_by(lambda x: x[0]).to_list()
+
+            # Output: [(1, 'apple'), (2, 'orange'), (3, 'banana')]
+            print(result)
+            ```
         """
-        yield from (item for item in sorted(source, key=self.key_selector))
+        return Queryable(item for item in sorted(self, key=key_selector))
 
-
-class OrderByDescending(Unary):
-    """Represents an operation that orders the elements in a sequence in descending
-    order based on a key selector function.
-
-    Args:
-        key_selector: A callable that takes an element of type T and returns a key of type U.
-
-    Returns:
-        An iterable containing the elements in descending order based on the key selector.
-    """
-
-    def __init__(self, key_selector: Callable[[T], U]) -> None:
-        """Initialize the OrderByDescending operation.
+    def order_by_descending(self, key_selector: Callable[[T], U]) -> "Queryable[T]":
+        """Orders the elements of the Queryable in descending order based on the
+        specified key selector.
 
         Args:
-            key_selector: A function that maps elements to keys used for sorting.
-        """
-        self.key_selector = key_selector
-
-    def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Orders the elements in the source iterable in descending order based on the
-        key selector.
-
-        Args:
-            source: An iterable of elements to be sorted.
+            key_selector (Callable[[T], U]): A function that extracts a comparable key from each element.
 
         Returns:
-            An iterable containing the elements in descending order based on the key selector.
+            Queryable: A new Queryable with elements sorted in descending order.
+
+        Example:
+            ```python
+            # Example usage of order_by_descending method
+            data = [5, 2, 8, 1, 7]
+            queryable_data = Queryable(data)
+
+            # Sorting the data in descending order based on the element itself
+            result = queryable_data.order_by_descending(lambda x: x)
+
+            # Result: Queryable([8, 7, 5, 2, 1])
+            ```
+
+            ```python
+            # Another example with custom key selector
+            class Person:
+                def __init__(self, name, age):
+                    self.name = name
+                    self.age = age
+
+            people = [Person("Alice", 25), Person("Bob", 30), Person("Charlie", 22)]
+            queryable_people = Queryable(people)
+
+            # Sorting people by age in descending order
+            result = queryable_people.order_by_descending(lambda person: person.age)
+
+            # Result: Queryable([Person('Bob', 30), Person('Alice', 25), Person('Charlie', 22)])
+            ```
         """
-        yield from (item for item in sorted(source, key=self.key_selector, reverse=True))
+        return Queryable(item for item in sorted(self, key=key_selector, reverse=True))
 
-
-class ThenBy(Unary):
-    """Represents an operation that performs a subsequent ordering of elements in a
-    sequence based on a key selector function.
-
-    Args:
-        key_selector: A callable that takes an element of type T and returns a key of type U.
-
-    Returns:
-        An iterable containing the elements with subsequent ordering based on the key selector.
-    """
-
-    def __init__(self, key_selector: Callable[[T], U]) -> None:
-        """Initialize the ThenBy operation.
+    def then_by(self, key_selector: Callable[[T], U]) -> "Queryable[T]":
+        """Applies a secondary sorting to the elements of the Queryable based on the
+        specified key_selector.
 
         Args:
-            key_selector: A function that maps elements to keys used for sorting.
-        """
-        self.key_selector = key_selector
-
-    def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Orders the elements in the source iterable with subsequent ordering based on
-        the key selector.
-
-        Args:
-            source: An iterable of elements to be sorted.
+            key_selector (Callable[[T], U]): A function that extracts a key from each element for sorting.
 
         Returns:
-            An iterable containing the elements with subsequent ordering based on the key selector.
+            Queryable: A new Queryable with the elements sorted first by the existing sorting criteria,
+                       and then by the specified key_selector.
+
+        Example:
+            ```python
+            class Person:
+                def __init__(self, name, age):
+                    self.name = name
+                    self.age = age
+
+            people = [
+                Person("Alice", 30),
+                Person("Bob", 25),
+                Person("Charlie", 35),
+            ]
+
+            queryable_people = Queryable(people)
+
+            # Sort by age in ascending order and then by name in ascending order
+            sorted_people = queryable_people.order_by(lambda p: p.age).then_by(lambda p: p.name).to_list()
+
+            # Result: [Bob(25), Alice(30), Charlie(35)]
+            ```
         """
-        yield from (item for item in sorted(source, key=self.key_selector, reverse=False))
+        return Queryable(item for item in sorted(self, key=key_selector, reverse=False))
 
-
-class ThenByDescending(Unary):
-    """Unary operation that performs a secondary descending order based on a key
-    selector."""
-
-    def __init__(self, key_selector: Callable[[T], U]) -> None:
-        """Initialize the ThenByDescending operation.
+    def then_by_descending(self, key_selector: Callable[[T], U]) -> "Queryable[T]":
+        """Sorts the elements of the Queryable in descending order based on the
+        specified key selector.
 
         Args:
-            key_selector: A function that maps elements to keys used for sorting.
+            key_selector (Callable[[T], U]): A function that takes an element of the Queryable and
+                returns a value used for sorting.
+
+        Returns:
+            Queryable: A new Queryable with elements sorted in descending order based on the key selector.
+
+        Example:
+            ```python
+            # Example usage of then_by_descending method
+            from typing import List
+
+            class Person:
+                def __init__(self, name: str, age: int):
+                    self.name = name
+                    self.age = age
+
+                def __repr__(self):
+                    return f"Person(name={self.name}, age={self.age})"
+
+            people: List[Person] = [
+                Person("Alice", 30),
+                Person("Bob", 25),
+                Person("Charlie", 35),
+            ]
+
+            # Create a Queryable from a list of Person objects
+            queryable_people = Queryable(people)
+
+            # Sort the people by age in descending order
+            sorted_people = queryable_people.then_by_descending(lambda person: person.age)
+
+            # Display the sorted list
+            print(sorted_people)
+            ```
+            Output:
+            ```
+            [Person(name=Charlie, age=35), Person(name=Alice, age=30), Person(name=Bob, age=25)]
+            ```
         """
-        self.key_selector = key_selector
+        return Queryable(item for item in sorted(self, key=key_selector, reverse=True))
 
-    def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        """Apply the ThenByDescending operation to the source iterable.
-
-        Args:
-            source: The source iterable.
-
-        Yields:
-            The elements of the source iterable with a secondary descending order based on the key selector.
-        """
-        yield from (item for item in sorted(source, key=self.key_selector, reverse=True))
-
-
-class Join(Binary):
-    """Binary operation that joins two iterables based on key selectors and applies a
-    result selector."""
-
-    def __init__(
-        self,
-        inner: Iterable[U],
-        outer_key_selector: Callable[[T], K],
-        inner_key_selector: Callable[[U], K],
-        result_selector: Callable[[T, U], V],
-    ) -> None:
-        self.inner = inner
-        self.outer_key_selector = outer_key_selector
-        self.inner_key_selector = inner_key_selector
-        self.result_selector = result_selector
-
-    def __call__(
-        self,
-        source1: Iterable[T],
-        source2: Iterable[U],
-    ) -> Generator[V, None, None]:
-        lookup = {self.inner_key_selector(item): item for item in self.inner}
-        for item in source1:
-            key = self.outer_key_selector(item)
-            if key in lookup:
-                yield self.result_selector(item, lookup[key])
-
-
-class GroupJoin(Binary):
-    def __init__(
+    def group_join(
         self,
         inner: Iterable[U],
         outer_key_selector: Callable[[T], K],
         inner_key_selector: Callable[[U], K],
         result_selector: Callable[[T, Iterable[U]], V],
-    ) -> None:
-        self.inner = inner
-        self.outer_key_selector = outer_key_selector
-        self.inner_key_selector = inner_key_selector
-        self.result_selector = result_selector
+    ) -> "Queryable[T]":
+        """Performs a group join operation between two sequences.
 
-    def __call__(
-        self,
-        source1: Iterable[T],
-        source2: Iterable[U],
-    ) -> Generator[V, None, None]:
-        lookup = {self.inner_key_selector(item): item for item in self.inner}
-        for item in source1:
-            key = self.outer_key_selector(item)
-            inner_items = [lookup[key]] if key in lookup else []
-            yield self.result_selector(item, inner_items)
+        Args:
+            inner (Iterable[U]): The inner sequence to join with the outer sequence.
+            outer_key_selector (Callable[[T], K]): A function to extract the key from elements in the outer sequence.
+            inner_key_selector (Callable[[U], K]): A function to extract the key from elements in the inner sequence.
+            result_selector (Callable[[T, Iterable[U]], V]): A function to create a result element from an outer element
+                                                            and its corresponding inner elements.
 
+        Returns:
+            Queryable: A new Queryable containing the result of the group join operation.
 
-class Zip(Binary):
-    def __call__(
-        self,
-        source1: Iterable[T],
-        source2: Iterable[U],
-    ) -> Generator[tuple[T, U], None, None]:
-        yield from zip(source1, source2)
+        Example:
+            ```python
+            # Example usage of group_join
 
+            # Define two sequences
+            outer_sequence = Queryable([1, 2, 3, 4])
+            inner_sequence = Queryable([(1, 'a'), (2, 'b'), (2, 'c'), (3, 'd')])
 
-class All(Unary):
-    def __init__(self, predicate: Callable[[T], bool]) -> None:
-        self.predicate = predicate
+            # Perform a group join based on the first element of each tuple
+            result = outer_sequence.group_join(
+                inner_sequence,
+                outer_key_selector=lambda x: x,
+                inner_key_selector=lambda x: x[0],
+                result_selector=lambda outer, inner: (outer, list(inner))
+            )
 
-    def __call__(self, source: Iterable[T]) -> bool:
-        return all(self.predicate(item) for item in source)
+            # Display the result
+            for item in result:
+                print(item)
 
+            # Output:
+            # (1, [('a',)])
+            # (2, [('b', 'c')])
+            # (3, [('d',)])
+            # (4, [])
+            ```
+        """
 
-class Any(Unary):
-    def __init__(self, predicate: Optional[Callable[[T], bool]] = None) -> None:
-        self.predicate = predicate
+        def _():
+            lookup = {inner_key_selector(item): item for item in inner}
+            for item in self:
+                key = outer_key_selector(item)
+                inner_items = [lookup[key]] if key in lookup else []
+                yield result_selector(item, inner_items)
 
-    def __call__(self, source: Iterable[T]) -> bool:
-        if self.predicate is None:
-            return any(source)
+        return Queryable(_())
 
-        return any(self.predicate(item) for item in source)
+    def zip(self, other: Iterable[T]) -> "Queryable[T]":
+        """Zips the elements of the current Queryable instance with the elements of
+        another iterable.
 
+        Args:
+            other (Iterable[T]): The iterable to zip with the current Queryable.
 
-class Contains(Unary):
-    def __init__(self, value: T) -> None:
-        self.value = value
+        Returns:
+            Queryable[T]: A new Queryable instance containing tuples of zipped elements.
 
-    def __call__(self, source: Iterable[T]) -> bool:
-        return self.value in source
+        Example:
+            ```python
+            queryable1 = Queryable([1, 2, 3, 4])
+            queryable2 = Queryable(['a', 'b', 'c', 'd'])
+            result = queryable1.zip(queryable2)
 
+            list(result)
+            [(1, 'a'), (2, 'b'), (3, 'c'), (4, 'd')]
+            ```
+        """
+        return Queryable(zip(self, other))
 
-class Count(Unary):
-    def __init__(self, predicate: Callable[[T], bool] = None) -> None:
-        self.predicate = predicate
+    def concat(self, other: Iterable[T]) -> "Queryable[T]":
+        """Concatenates the elements of the current Queryable with the elements from
+        another iterable.
 
-    def __call__(self, source: Iterable[T]) -> int:
-        if self.predicate is not None:
-            return sum(1 for item in source if self.predicate(item))
-        else:
-            return sum(1 for _ in source)
+        Args:
+            other (Iterable[T]): Another iterable whose elements will be appended to the current Queryable.
 
+        Returns:
+            Queryable[T]: A new Queryable containing the concatenated elements.
 
-class Sum(Unary):
-    def __call__(self, source: Iterable[T]) -> T:
-        return sum(source)
+        Example:
+            ```python
+            # Create a Queryable with initial elements
+            queryable1 = Queryable([1, 2, 3])
 
+            # Another iterable to concatenate
+            other_iterable = [4, 5, 6]
 
-class Min(Unary):
-    def __call__(self, source: Iterable[T]) -> T:
-        return min(source)
+            # Concatenate the two iterables
+            result_queryable = queryable1.concat(other_iterable)
 
+            # Result Queryable contains elements from both iterables
+            assert list(result_queryable) == [1, 2, 3, 4, 5, 6]
+            ```
+        """
+        return Queryable(chain(self, other))
 
-class Max(Unary):
-    def __call__(self, source: Iterable[T]) -> T:
-        return max(source)
+    def aggregate(self, func: Callable[[T, T], T]) -> T:
+        """Aggregates the elements of the sequence using a specified binary function.
 
+        Args:
+            func (Callable[[T, T], T]): A binary function that takes two elements of the
+                sequence and returns a single aggregated result.
 
-class Average(Unary):
-    def __call__(self, source: Iterable[T]) -> T:
-        total, count = 0, 00
-        for item in source:
-            total += item
-            count += 1
+        Returns:
+            T: The result of aggregating the elements using the specified function.
 
-        if count > 0:
-            return total / count
+        Raises:
+            ValueError: If the sequence is empty and cannot be aggregated.
 
-        return None
+        Example:
+            ```python
+            # Example 1: Aggregating a list of numbers using the addition function
+            numbers = [1, 2, 3, 4, 5]
+            result = aggregate(numbers, lambda x, y: x + y)
+            print(result)  # Output: 15
 
-
-class Aggregate(Unary):
-    def __init__(self, func: Callable[[T, T], T]) -> None:
-        self.func = func
-
-    def __call__(self, source: Iterable[T]) -> T:
-        iterator = iter(source)
+            # Example 2: Aggregating a list of strings using the concatenation function
+            words = ["Hello", " ", "World", "!"]
+            result = aggregate(words, lambda x, y: x + y)
+            print(result)  # Output: Hello World!
+            ```
+        """
+        iterator = iter(self)
 
         try:
             result = next(iterator)
@@ -434,108 +540,321 @@ class Aggregate(Unary):
             raise ValueError(msg)
 
         for item in iterator:
-            result = self.func(result, item)
+            result = func(result, item)
 
         return result
 
+    def union(self, other: Iterable[T]) -> "Queryable[T]":
+        """Returns a new Queryable containing unique elements from both sequences.
 
-class Concat(Binary):
-    def __call__(
-        self,
-        source1: Iterable[T],
-        source2: Iterable[T],
-    ) -> Iterable[T]:
-        yield from source1
-        yield from source2
+        Args:
+            other (Iterable[T]): Another iterable sequence to perform the union with.
 
+        Returns:
+            Queryable[T]: A new Queryable containing unique elements from both sequences.
 
-class Union(Binary):
-    def __call__(
-        self,
-        source1: Iterable[T],
-        source2: Iterable[T],
-    ) -> Iterable[T]:
-        yield from set(source1).union(source2)
+        Example:
+            ```python
+            # Example: Union of two sets of numbers
+            set1 = Queryable([1, 2, 3, 4])
+            set2 = [3, 4, 5, 6]
+            result = set1.union(set2)
+            print(result)  # Output: Queryable([1, 2, 3, 4, 5, 6])
+            ```
+        """
+        return Queryable(set(self).union(other))
 
+    def intersect(self, other: Iterable[T]) -> "Queryable[T]":
+        """Returns a new Queryable containing common elements between two sequences.
 
-class Intersect(Binary):
-    def __call__(
-        self,
-        source1: Iterable[T],
-        source2: Iterable[T],
-    ) -> Iterable[T]:
-        yield from set(source1).intersection(source2)
+        Args:
+            other (Iterable[T]): Another iterable sequence to perform the intersection with.
 
+        Returns:
+            Queryable[T]: A new Queryable containing common elements between both sequences.
 
-class Except(Binary):
-    def __call__(
-        self,
-        source1: Iterable[T],
-        source2: Iterable[T],
-    ) -> Iterable[T]:
-        yield from set(source1).difference(source2)
+        Example:
+            ```python
+            # Example: Intersection of two sets of numbers
+            set1 = Queryable([1, 2, 3, 4])
+            set2 = [3, 4, 5, 6]
+            result = set1.intersect(set2)
+            print(result)  # Output: Queryable([3, 4])
+            ```
+        """
+        return Queryable(set(self).intersection(other))
 
+    def all(self, predicate: Callable[[T], bool]) -> bool:
+        """Determines whether all elements of the sequence satisfy a given predicate.
 
-class First(Unary):
-    def __init__(self, predicate: Optional[Callable[[T], bool]] = None) -> None:
-        self.predicate = predicate
+        Args:
+            predicate (Callable[[T], bool]): The predicate function to apply to each element.
 
-    def __call__(self, source: Iterable[T]) -> T:
-        if self.predicate is None:
+        Returns:
+            bool: True if all elements satisfy the predicate, False otherwise.
+
+        Example:
+            ```python
+            # Example: Check if all numbers are even
+            numbers = Queryable([2, 4, 6, 8])
+            result = numbers.all(lambda x: x % 2 == 0)
+            print(result)  # Output: True
+            ```
+        """
+        if predicate is None:
+            return all(self)
+
+        return all(predicate(item) for item in self)
+
+    def any(self, predicate: Callable[[T], bool] = None) -> bool:
+        """Determines whether any elements of the sequence satisfy a given predicate.
+
+        Args:
+            predicate (Callable[[T], bool]): The predicate function to apply to each element.
+
+        Returns:
+            bool: True if any elements satisfy the predicate, False otherwise.
+
+        Example:
+            ```python
+            # Example: Check if any numbers are odd
+            numbers = Queryable([2, 4, 6, 8])
+            result = numbers.any(lambda x: x % 2 != 0)
+            print(result)  # Output: False
+            ```
+        """
+        if predicate is None:
+            return any(self)
+
+        return any(predicate(item) for item in self)
+
+    def contains(self, value: T) -> T:
+        """Determines whether the sequence contains a specific value.
+
+        Args:
+            value (T): The value to check for in the sequence.
+
+        Returns:
+            T: True if the sequence contains the value, False otherwise.
+
+        Example:
+            ```python
+            # Example: Check if a list contains a specific element
+            numbers = Queryable([1, 2, 3, 4])
+            result = numbers.contains(3)
+            print(result)  # Output: True
+            ```
+        """
+        return value in self
+
+    def count(self, predicate: Callable[[T], bool] = None) -> int:
+        """Counts the number of elements in the sequence or those satisfying a given
+        predicate.
+
+        Args:
+            predicate (Callable[[T], bool]): The predicate function to filter elements.
+
+        Returns:
+            int: The number of elements in the sequence or satisfying the predicate.
+
+        Example:
+            ```python
+            # Example: Count the number of even numbers
+            numbers = Queryable([1, 2, 3, 4, 5, 6])
+            result = numbers.count(lambda x: x % 2 == 0)
+            print(result)  # Output: 3
+            ```
+        """
+        return sum(1 for _ in self)
+
+    def sum(self) -> int:
+        """Calculates the sum of all elements in the sequence.
+
+        Returns:
+            int: The sum of all elements in the sequence.
+
+        Example:
+            ```python
+            # Example: Calculate the sum of a list of numbers
+            numbers = Queryable([1, 2, 3, 4, 5])
+            result = numbers.sum()
+            print(result)  # Output: 15
+            ```
+        """
+        return sum(item for item in self)
+
+    def min(self) -> int:
+        """Finds the minimum value among the elements in the sequence.
+
+        Returns:
+            int: The minimum value in the sequence.
+
+        Example:
+            ```python
+            # Example: Find the minimum value in a list of numbers
+            numbers = Queryable([3, 1, 4, 1, 5, 9, 2])
+            result = numbers.min()
+            print(result)  # Output: 1
+            ```
+        """
+        return min(self)
+
+    def max(self) -> int:
+        """Finds the maximum value among the elements in the sequence.
+
+        Returns:
+            int: The maximum value in the sequence.
+
+        Example:
+            ```python
+            # Example: Find the maximum value in a list of numbers
+            numbers = Queryable([3, 1, 4, 1, 5, 9, 2])
+            result = numbers.max()
+            print(result)  # Output: 9
+            ```
+        ```
+        ```
+        """
+        return max(self)
+
+    def average(self) -> int:
+        """Calculates the average of all elements in the sequence.
+
+        Returns:
+            int: The average of all elements in the sequence.
+
+        Example:
+            ```python
+            # Example: Calculate the average of a list of numbers
+            numbers = Queryable([1, 2, 3, 4, 5])
+            result = numbers.average()
+            print(result)  # Output: 3
+            ```
+        """
+        return self.sum() / self.count()
+
+    def except_for(self, other: Iterable[T]) -> "Queryable[T]":
+        """Returns a new Queryable containing elements that are not in the specified
+        sequence.
+
+        Args:
+            other (Iterable[T]): Another iterable sequence to exclude from the current sequence.
+
+        Returns:
+            Queryable[T]: A new Queryable containing elements not present in the specified sequence.
+
+        Example:
+            ```python
+            # Example: Exclude common elements from two sets of numbers
+            set1 = Queryable([1, 2, 3, 4])
+            set2 = [3, 4, 5, 6]
+            result = set1.except_for(set2)
+            print(result)  # Output: Queryable([1, 2])
+            ```
+        """
+        return Queryable(set(self).difference(other))
+
+    def first(self, predicate: Optional[Callable[[T], bool]] = None) -> T:
+        """Returns the first element of the sequence satisfying the optional predicate.
+
+        Args:
+            predicate (Optional[Callable[[T], bool]]): The optional predicate function to filter elements.
+
+        Returns:
+            T: The first element of the sequence satisfying the predicate.
+
+        Raises:
+            ValueError: If the sequence is empty or no element satisfies the predicate.
+
+        Example:
+            ```python
+            # Example: Find the first even number in a list
+            numbers = Queryable([1, 2, 3, 4, 5])
+            result = numbers.first(lambda x: x % 2 == 0)
+            print(result)  # Output: 2
+            ```
+        """
+        if predicate is None:
             try:
-                return next(iter(source))
+                return next(iter(self))
             except StopIteration:
                 msg = "Sequence contains no elements."
                 raise ValueError(msg)
 
-        for item in source:
-            if self.predicate(item):
+        for item in self:
+            if predicate(item):
                 return item
 
         msg = "Sequence contains no matching element."
         raise ValueError(msg)
 
-
-class FirstOrDefault(Unary):
-    def __init__(
+    def first_or_default(
         self,
-        predicate: Optional[Callable[[T], bool]] = None,
+        predicate: Callable[[T], bool] = None,
         default: Optional[T] = None,
-    ) -> None:
-        self.predicate = predicate
-        self.default = default
+    ) -> T:
+        """Returns the first element of the sequence satisfying the optional predicate,
+        or a default value.
 
-    def __call__(self, source: Iterable[T]) -> T:
-        if self.predicate is None:
+        Args:
+            predicate (Callable[[T], bool]): The optional predicate function to filter elements.
+            default (Optional[T]): The default value to return if no element satisfies the predicate.
+
+        Returns:
+            T: The first element of the sequence satisfying the predicate, or the default value if none found.
+
+        Example:
+            ```python
+            # Example: Find the first odd number in a list or return 0 if none found
+            numbers = Queryable([2, 4, 6, 8])
+            result = numbers.first_or_default(lambda x: x % 2 != 0, default=0)
+            print(result)  # Output: 0
+            ```
+        """
+        if predicate is None:
             try:
-                return next(iter(source))
+                return next(iter(self))
             except StopIteration:
-                return self.default
+                return default
 
-        for item in source:
-            if self.predicate(item):
+        for item in self:
+            if predicate(item):
                 return item
 
-        return self.default
+        return default
 
+    def last(self, predicate: Optional[Callable[[T], bool]] = None) -> T:
+        """Returns the last element of the sequence satisfying the optional predicate.
 
-class Last(Unary):
-    def __init__(self, predicate: Optional[Callable[[T], bool]] = None) -> None:
-        self.predicate = predicate
+        Args:
+            predicate (Optional[Callable[[T], bool]]): The optional predicate function to filter elements.
 
-    def __call__(self, source: Iterable[T]) -> T:
-        if self.predicate is None:
+        Returns:
+            T: The last element of the sequence satisfying the predicate.
+
+        Raises:
+            ValueError: If the sequence is empty or no element satisfies the predicate.
+
+        Example:
+            ```python
+            # Example: Find the last even number in a list
+            numbers = Queryable([1, 2, 3, 4, 5])
+            result = numbers.last(lambda x: x % 2 == 0)
+            print(result)  # Output: 4
+            ```
+        """
+        if predicate is None:
             try:
                 result = None
-                for item in source:
+                for item in self:
                     result = item
                 return result
             except StopIteration:
                 msg = "Sequence contains no elements."
                 raise ValueError(msg)
 
-        for item in source:
-            if self.predicate(item):
+        for item in self:
+            if predicate(item):
                 result = item
 
         if result is None:
@@ -544,41 +863,68 @@ class Last(Unary):
 
         return result
 
-
-class LastOrDefault(Unary):
-    def __init__(
+    def last_or_default(
         self,
         predicate: Optional[Callable[[T], bool]] = None,
         default: Optional[T] = None,
-    ) -> None:
-        self.predicate = predicate
-        self.default = default
+    ) -> T:
+        """Returns the last element of the sequence satisfying the optional predicate,
+        or a default value.
 
-    def __call__(self, source: Iterable[T]) -> T:
-        if self.predicate is None:
+        Args:
+            predicate (Optional[Callable[[T], bool]]): The optional predicate function to filter elements.
+            default (Optional[T]): The default value to return if no element satisfies the predicate.
+
+        Returns:
+            T: The last element of the sequence satisfying the predicate, or the default value if none found.
+
+        Example:
+            ```python
+            # Example: Find the last odd number in a list or return 0 if none found
+            numbers = Queryable([2, 4, 6, 8])
+            result = numbers.last_or_default(lambda x: x % 2 != 0, default=0)
+            print(result)  # Output: 0
+            ```
+        """
+        if predicate is None:
             try:
-                result = self.default
-                for item in source:
+                result = default
+                for item in self:
                     result = item
                 return result
             except StopIteration:
-                return self.default
+                return default
 
-        for item in source:
-            if self.predicate(item):
+        for item in self:
+            if predicate(item):
                 return item
 
-        return self.default
+        return default
 
+    def single(self, predicate: Callable[[T], bool] = None) -> T:
+        """Returns the single element of the sequence satisfying the optional predicate.
 
-class Single(Unary):
-    def __init__(self, predicate: Optional[Callable[[T], bool]] = None) -> None:
-        self.predicate = predicate
+        Args:
+            predicate (Callable[[T], bool]): The optional predicate function to filter elements.
 
-    def __call__(self, source: Iterable[T]) -> T:
-        items = iter(source)
+        Returns:
+            T: The single element of the sequence satisfying the predicate.
 
-        if self.predicate is None:
+        Raises:
+            ValueError: If the sequence is empty, contains more than one element,
+                        or no element satisfies the predicate.
+
+        Example:
+            ```python
+            # Example: Find the single even number in a list
+            numbers = Queryable([2, 4, 6, 8])
+            result = numbers.single(lambda x: x % 2 == 0)
+            print(result)  # Output: 2
+            ```
+        """
+        items = iter(self)
+
+        if predicate is None:
             try:
                 result = next(items)
                 try:
@@ -593,8 +939,8 @@ class Single(Unary):
 
         match_count = 0
         result = None
-        for item in source:
-            if self.predicate(item):
+        for item in self:
+            if predicate(item):
                 match_count += 1
                 result = item
 
@@ -608,20 +954,35 @@ class Single(Unary):
 
         return result
 
-
-class SingleOrDefault(Unary):
-    def __init__(
+    def single_or_default(
         self,
-        predicate: Optional[Callable[[T], bool]] = None,
+        predicate: Callable[[T], bool] = None,
         default: Optional[T] = None,
-    ) -> None:
-        self.predicate = predicate
-        self.default = default
+    ) -> T:
+        """Returns the single element of the sequence satisfying the optional predicate,
+        or a default value if no such element is found.
 
-    def __call__(self, source: Iterable[T]) -> T:
-        items = iter(source)
+        Args:
+            predicate (Callable[[T], bool]): The optional predicate function to filter elements.
+            default (Optional[T]): The default value to return if no element satisfies the predicate.
 
-        if self.predicate is None:
+        Returns:
+            T: The single element of the sequence satisfying the predicate, or the default value.
+
+        Raises:
+            ValueError: If the sequence contains more than one element satisfying the predicate.
+
+        Example:
+            ```python
+            # Example: Find the single odd number in a list or return 0 if none found
+            numbers = Queryable([2, 4, 6, 8])
+            result = numbers.single_or_default(lambda x: x % 2 != 0, default=0)
+            print(result)  # Output: 0
+            ```
+        """
+        items = iter(self)
+
+        if predicate is None:
             try:
                 result = next(items)
                 try:
@@ -631,12 +992,12 @@ class SingleOrDefault(Unary):
                 except StopIteration:
                     return result
             except StopIteration:
-                return self.default
+                return default
 
         match_count = 0
-        result = self.default
-        for item in source:
-            if self.predicate(item):
+        result = default
+        for item in self:
+            if predicate(item):
                 match_count += 1
                 result = item
 
@@ -646,199 +1007,84 @@ class SingleOrDefault(Unary):
 
         return result
 
+    def element_at(self, index: int) -> T:
+        """Returns the element at the specified index in the sequence.
 
-class ElementAt(Unary):
-    def __init__(self, index: int) -> None:
-        self.index = index
+        Args:
+            index (int): The index of the element to retrieve.
 
-    def __call__(self, source: Iterable[T]) -> T:
+        Returns:
+            T: The element at the specified index.
+
+        Raises:
+            ValueError: If the sequence contains no element at the specified index.
+
+        Example:
+            ```python
+            # Example: Get the element at index 2 in a list
+            numbers = Queryable([1, 2, 3, 4, 5])
+            result = numbers.element_at(2)
+            print(result)  # Output: 3
+            ```
+        """
         try:
-            return next(item for i, item in enumerate(source) if i == self.index)
+            return next(item for i, item in enumerate(self) if i == index)
         except StopIteration:
             msg = "Sequence contains no element at the specified index."
             raise ValueError(msg)
 
-
-class ElementAtOrDefault(Unary):
-    def __init__(self, index: int, default: Optional[T] = None) -> None:
-        self.index = index
-        self.default = default
-
-    def __call__(self, source: Iterable[T]) -> T:
-        try:
-            return next(item for i, item in enumerate(source) if i == self.index)
-        except StopIteration:
-            return self.default
-
-
-class DefaultIfEmpty(Unary):
-    def __init__(self, default_value: Optional[T] = None) -> None:
-        self.default_value = default_value
-
-    def __call__(self, source: Iterable[T]) -> UnionType[T, Iterable[T]]:
-        try:
-            next(iter(source))
-        except StopIteration:
-            if self.default_value is not None:
-                yield self.default_value
-            return
-
-        yield from source
-
-
-class OfType(Unary):
-    def __init__(self, type_filter: type[U]) -> None:
-        self.type_filter = type_filter
-
-    def __call__(self, source: Iterable[T]) -> Iterable[T]:
-        yield from (item for item in source if isinstance(item, self.type_filter))
-
-
-class Queryable(Iterable[T]):
-    def __init__(self, collection: Iterable[T]) -> None:
-        self.collection = collection
-
-    def __iter__(self) -> Iterable[T]:
-        yield from self.collection
-
-    @classmethod
-    def range(cls, start: int, stop: Optional[int] = None, step: int = 1) -> "Queryable":
-        if stop is None:
-            start, stop = 0, start
-
-        return cls(range(start, stop, step))
-
-    @classmethod
-    def empty(cls) -> "Queryable":
-        return cls([])
-
-    def query(self) -> "Queryable":
-        return Queryable(self)
-
-    def where(self, predicate: Callable[[T], bool]) -> "Queryable":
-        return Queryable(Where(predicate)(self))
-
-    def select(self, selector: Callable[[T], U]) -> "Queryable":
-        return Queryable(Select(selector)(self))
-
-    def distinct(self) -> "Queryable":
-        return Queryable(Distinct()(self))
-
-    def skip(self, count: int) -> "Queryable":
-        return Queryable(Skip(count)(self))
-
-    def take(self, count: int) -> "Queryable":
-        return Queryable(Take(count)(self))
-
-    def of_type(self, type_filter: type[U]) -> "Queryable":
-        return Queryable(OfType(type_filter)(self))
-
-    def select_many(self, selector: Callable[[T], Iterable[U]]) -> "Queryable":
-        return Queryable(SelectMany(selector)(self))
-
-    def order_by(self, key_selector: Callable[[T], U]) -> "Queryable":
-        return Queryable(OrderBy(key_selector)(self))
-
-    def order_by_descending(self, key_selector: Callable[[T], U]) -> "Queryable":
-        return Queryable(OrderByDescending(key_selector)(self))
-
-    def then_by(self, key_selector: Callable[[T], U]) -> "Queryable":
-        return Queryable(ThenBy(key_selector)(self))
-
-    def then_by_descending(self, key_selector: Callable[[T], U]) -> "Queryable":
-        return Queryable(ThenByDescending(key_selector)(self))
-
-    def group_join(
-        self,
-        inner: Iterable[U],
-        outer_key_selector: Callable[[T], K],
-        inner_key_selector: Callable[[U], K],
-        result_selector: Callable[[T, Iterable[U]], V],
-    ) -> "Queryable":
-        return Queryable(
-            GroupJoin(inner, outer_key_selector, inner_key_selector, result_selector)(self, inner),
-        )
-
-    def zip(self, other: Iterable[T]) -> "Queryable[T]":
-        return Queryable(Zip()(self, other))
-
-    def concat(self, other: Iterable[T]) -> "Queryable[T]":
-        return Queryable(chain(self, other))
-
-    def aggregate(self, func: Callable[[T, T], T]) -> T:
-        return Aggregate(func)(self)
-
-    def union(self, other: Iterable[T]) -> "Queryable[T]":
-        return Queryable(Union()(self, other))
-
-    def intersect(self, other: Iterable[T]) -> "Queryable[T]":
-        return Queryable(Intersect()(self, other))
-
-    def all(self, predicate: Callable[[T], bool]) -> bool:
-        return All(predicate)(self)
-
-    def any(self, predicate: Callable[[T], bool] = None) -> bool:
-        return Any(predicate)(self)
-
-    def contains(self, value: T) -> T:
-        return Contains(value)(self)
-
-    def count(self, predicate: Callable[[T], bool] = None) -> int:
-        return Count(predicate)(self)
-
-    def sum(self) -> int:
-        return Sum()(self)
-
-    def min(self) -> int:
-        return Min()(self)
-
-    def max(self) -> int:
-        return Max()(self)
-
-    def average(self) -> int:
-        return Average()(self)
-
-    def except_for(self, other: Iterable[T]) -> "Queryable[T]":
-        return Queryable(Except()(self, other))
-
-    def first(self, predicate: Callable[[T], bool] = None) -> T:
-        return First(predicate)(self)
-
-    def first_or_default(
-        self,
-        predicate: Callable[[T], bool] = None,
-        default: Optional[T] = None,
-    ) -> T:
-        return FirstOrDefault(predicate, default)(self)
-
-    def last(self, predicate: Callable[[T], bool] = None) -> T:
-        return Last(predicate)(self)
-
-    def last_or_default(
-        self,
-        predicate: Callable[[T], bool] = None,
-        default: Optional[T] = None,
-    ) -> T:
-        return LastOrDefault(predicate, default)(self)
-
-    def single(self, predicate: Callable[[T], bool] = None) -> T:
-        return Single(predicate)(self)
-
-    def single_or_default(
-        self,
-        predicate: Callable[[T], bool] = None,
-        default: Optional[T] = None,
-    ) -> T:
-        return SingleOrDefault(predicate, default)(self)
-
-    def element_at(self, index: int) -> T:
-        return ElementAt(index)(self)
-
     def element_at_or_default(self, index: int, default: Optional[T] = None) -> T:
-        return ElementAtOrDefault(index, default)(self)
+        """Returns the element at the specified index in the sequence, or a default
+        value if none found.
+
+        Args:
+            index (int): The index of the element to retrieve.
+            default (Optional[T]): The default value to return if no element is found at the specified index.
+
+        Returns:
+            T: The element at the specified index, or the default value if none found.
+
+        Example:
+            ```python
+            # Example: Get the element at index 5 in a list or return -1 if none found
+            numbers = Queryable([1, 2, 3, 4, 5])
+            result = numbers.element_at_or_default(5, default=-1)
+            print(result)  # Output: -1
+            ```
+        """
+        try:
+            return next(item for i, item in enumerate(self) if i == index)
+        except StopIteration:
+            return default
 
     def default_if_empty(self, default: T) -> "Queryable[T]":
-        return Queryable(DefaultIfEmpty(default)(self))
+        """Returns a new Queryable with a default value if the sequence is empty.
+
+        Args:
+            default (T): The default value to include in the new Queryable if the sequence is empty.
+
+        Returns:
+            Queryable[T]: A new Queryable containing the original elements or the default value.
+
+        Example:
+            ```python
+            # Example: Provide a default value for an empty list
+            empty_list = Queryable([])
+            result = empty_list.default_if_empty(default=0).to_list()
+            print(result)  # Output: [0]
+            ```
+        """
+
+        def _() -> Iterator[Union[None, T]]:
+            try:
+                next(iter(self))
+            except StopIteration:
+                yield default
+                return
+
+            yield from self
+
+        return Queryable(_())
 
     def join(
         self,
@@ -846,19 +1092,77 @@ class Queryable(Iterable[T]):
         outer_key_selector: Callable[[T], K],
         inner_key_selector: Callable[[U], K],
         result_selector: Callable[[T, U], V],
-    ) -> "Queryable":
-        return Queryable(
-            Join(inner, outer_key_selector, inner_key_selector, result_selector)(self, inner),
-        )
+    ) -> "Queryable[V]":
+        """Joins two iterables based on key selectors and applies a result selector.
+
+        Args:
+            inner (Iterable[U]): The inner iterable to join with.
+            outer_key_selector (Callable[[T], K]): The key selector for the outer sequence.
+            inner_key_selector (Callable[[U], K]): The key selector for the inner sequence.
+            result_selector (Callable[[T, U], V]): The result selector function to apply.
+
+        Returns:
+            Queryable: A new Queryable containing the joined elements based on the specified conditions.
+
+        Example:
+            ```python
+            # Example: Join two sets of numbers based on common factors
+            set1 = Queryable([1, 2, 3, 4])
+            set2 = [3, 4, 5, 6]
+            result = set1.join(set2, outer_key_selector=lambda x: x, inner_key_selector=lambda x: x % 3,
+                               result_selector=lambda x, y: (x, y))
+            print(result.to_list())  # Output: [(1, 4), (2, 5), (3, 6)]
+            ```
+        """
+
+        def _() -> "Iterator[V]":
+            lookup = {inner_key_selector(item): item for item in inner}
+            for item in self:
+                key = outer_key_selector(item)
+                if key in lookup:
+                    yield result_selector(item, lookup[key])
+
+        return Queryable(_())
 
     def to_list(self) -> list[T]:
+        """Converts the Queryable to a list.
+
+        Returns:
+            list[T]: A list containing all elements of the Queryable.
+
+        Example:
+            ```python
+            # Example: Convert Queryable to a list
+            numbers = Queryable([1, 2, 3, 4, 5])
+            result = numbers.to_list()
+            print(result)  # Output: [1, 2, 3, 4, 5]
+            ```
+        """
         return list(self)
 
     def to_dictionary(
         self,
         key_selector: Callable[[T], K],
         value_selector: Optional[Callable[[T], V]] = None,
-    ) -> dict[K, V]:
+    ) -> dict[K, Union[V, T]]:
+        """Converts the Queryable to a dictionary using key and optional value
+        selectors.
+
+        Args:
+            key_selector (Callable[[T], K]): The key selector function.
+            value_selector (Optional[Callable[[T], V]]): The optional value selector function.
+
+        Returns:
+            dict[K, V]: A dictionary containing elements of the Queryable.
+
+        Example:
+            ```python
+            # Example: Convert Queryable of tuples to a dictionary with the first element as the key
+            pairs = Queryable([(1, 'one'), (2, 'two'), (3, 'three')])
+            result = pairs.to_dictionary(key_selector=lambda x: x[0], value_selector=lambda x: x[1])
+            print(result)  # Output: {1: 'one', 2: 'two', 3: 'three'}
+            ```
+        """
         if value_selector is None:
             return {key_selector(item): item for item in self}
 
