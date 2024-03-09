@@ -1,1 +1,1 @@
-::: querpyable.querpyable
+::: querpyable.querpyable.Queryable

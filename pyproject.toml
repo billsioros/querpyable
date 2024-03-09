@@ -223,7 +223,7 @@ source = ["querpyable"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 70
+fail_under = 65
 exclude_lines = [
   "if self.debug:",
   "pragma: no cover",

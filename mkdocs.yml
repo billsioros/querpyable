@@ -8,8 +8,7 @@ copyright: |
   Copyright &copy; 2024-2024 <a href="https://github.com/billsioros" target="_blank" rel="noopener">Vasilis Sioros</a>
 nav:
   - Overview: index.md
-  - Code Reference:
-      - Querpyable: src/querpyable.md
+  - Code Reference: src/querpyable.md
   - Contributing:
       - Contributing Guidelines: CONTRIBUTING.md
       - Code Of Conduct: CODE_OF_CONDUCT.md
@@ -63,21 +62,22 @@ plugins:
         python:
           paths:
             - src
-          rendering:
-            show_source: true
           options:
+            show_source: false
             docstring_style: google
-            docstring_options:
-            ignore_init_summary: yes
             merge_init_into_class: yes
-            show_submodules: no
+            docstring_options:
+              ignore_init_summary: yes
+              show_submodules: no
   - minify:
       minify_html: true
 markdown_extensions:
   - admonition
   - pymdownx.emoji
   - pymdownx.magiclink
-  - pymdownx.highlight
+  - pymdownx.highlight:
+      use_pygments: true
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets:
       check_paths: true
