@@ -6,6 +6,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 <!--next-version-placeholder-->
 
+## v3.0.0 (2024-03-09)
+
+### Feature
+
+* Opt for functions instead of classes ([`94f3e9d`](https://github.com/billsioros/querpyable/commit/94f3e9d80d4a42ff3418328988519d5f9b477f13))
+
+### Breaking
+
+* opt for functions instead of classes ([`94f3e9d`](https://github.com/billsioros/querpyable/commit/94f3e9d80d4a42ff3418328988519d5f9b477f13))
+
+**[See all commits in this version](https://github.com/billsioros/querpyable/compare/v2.0.4...v3.0.0)**
+
 ## v2.0.4 (2024-03-04)
 
 ### Fix
