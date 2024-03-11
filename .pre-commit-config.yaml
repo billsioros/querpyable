@@ -1,5 +1,4 @@
 ci:
-  skip: [hadolint-docker]
   autofix_commit_msg: 'refactor: `pre-commit.ci` auto fix'
   autofix_prs: true
   autoupdate_commit_msg: 'ci: `pre-commit.ci` auto update'
@@ -73,11 +72,6 @@ repos:
     rev: v2.11
     hooks:
       - id: vulture
-  - repo: https://github.com/hadolint/hadolint
-    rev: v2.12.1-beta
-    hooks:
-      - id: hadolint-docker
-        args: ['--ignore', 'DL3006']
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.28.0
     hooks:

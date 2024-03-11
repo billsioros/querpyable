@@ -1,11 +1,17 @@
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Hashable, Iterable, Iterator
 from itertools import chain
-from typing import Optional, TypeVar, Union
+from typing import Optional, Protocol, Tuple, TypeVar, Union, cast
 
 T = TypeVar("T")
-U = TypeVar("U")
 K = TypeVar("K")
 V = TypeVar("V")
+
+
+class ComparableHashable(Hashable, Protocol):
+    def __lt__(self, other: "ComparableHashable") -> bool: ...
+
+
+U = TypeVar("U", bound=ComparableHashable)
 
 
 class Queryable(Iterable[T]):
@@ -40,7 +46,7 @@ class Queryable(Iterable[T]):
             step (int): The step between each pair of consecutive values in the range. Default is 1.
 
         Returns:
-            Queryable: A Queryable instance representing the specified range of integers.
+            Queryable[int]: A Queryable instance representing the specified range of integers.
 
         Example:
             ```python
@@ -56,7 +62,7 @@ class Queryable(Iterable[T]):
         if stop is None:
             start, stop = 0, start
 
-        return cls(range(start, stop, step))
+        return cast(Queryable[int], cls(cast(T, i) for i in range(start, stop, step)))
 
     @classmethod
     def empty(cls) -> "Queryable[T]":
@@ -65,7 +71,7 @@ class Queryable(Iterable[T]):
         This class method returns a new Queryable instance initialized with an empty list.
 
         Returns:
-            Queryable: A new Queryable instance with an empty list.
+            Queryable[T]: A new Queryable instance with an empty list.
 
         Examples:
             ```python
@@ -83,7 +89,7 @@ class Queryable(Iterable[T]):
                 and returns a boolean indicating whether the element should be included in the result.
 
         Returns:
-            Queryable: A new Queryable containing the elements that satisfy the given predicate.
+            Queryable[T]: A new Queryable containing the elements that satisfy the given predicate.
 
         Example:
             ```python
@@ -104,14 +110,14 @@ class Queryable(Iterable[T]):
         """
         return Queryable(item for item in self if predicate(item))
 
-    def select(self, selector: Callable[[T], U]) -> "Queryable[T]":
+    def select(self, selector: Callable[[T], U]) -> "Queryable[U]":
         """Projects each element of the Queryable using the provided selector function.
 
         Args:
             selector (Callable[[T], U]): A function that maps elements of the Queryable to a new value.
 
         Returns:
-            Queryable: A new Queryable containing the results of applying the selector function to each element.
+            Queryable[U]: A new Queryable containing the results of applying the selector function to each element.
 
         Example:
             ```python
@@ -132,7 +138,7 @@ class Queryable(Iterable[T]):
         Queryable.
 
         Returns:
-            Queryable: A new Queryable with distinct elements.
+            Queryable[T]: A new Queryable with distinct elements.
 
         Example:
             ```python
@@ -144,15 +150,7 @@ class Queryable(Iterable[T]):
             # Result: Queryable([1, 2, 3, 4, 5])
             ```
         """
-
-        def _():
-            seen = set()
-            for item in self:
-                if item not in seen:
-                    seen.add(item)
-                    yield item
-
-        return Queryable(_())
+        return Queryable(set(self))
 
     def skip(self, count: int) -> "Queryable[T]":
         """Skips the specified number of elements from the beginning of the Queryable.
@@ -161,7 +159,7 @@ class Queryable(Iterable[T]):
             count (int): The number of elements to skip.
 
         Returns:
-            Queryable: A new Queryable object containing the remaining elements after skipping.
+            Queryable[T]: A new Queryable object containing the remaining elements after skipping.
 
         Example:
             ```python
@@ -185,7 +183,7 @@ class Queryable(Iterable[T]):
         - count (int): The number of elements to take from the current Queryable.
 
         Returns:
-        - Queryable: A new Queryable containing the first 'count' elements.
+        - Queryable[T]: A new Queryable containing the first 'count' elements.
 
         Example:
         ```python
@@ -198,7 +196,7 @@ class Queryable(Iterable[T]):
         """
         return Queryable(item for _, item in zip(range(count), self))
 
-    def of_type(self, type_filter: type[U]) -> "Queryable[T]":
+    def of_type(self, type_filter: type[U]) -> "Queryable[U]":
         """Filters the elements of the Queryable to include only items of a specific
         type.
 
@@ -206,7 +204,7 @@ class Queryable(Iterable[T]):
             type_filter (type): The type to filter the elements by.
 
         Returns:
-            Queryable: A new Queryable containing only elements of the specified type.
+            Queryable[U]: A new Queryable containing only elements of the specified type.
 
         Example:
             ```python
@@ -225,7 +223,7 @@ class Queryable(Iterable[T]):
         """
         return Queryable(item for item in self if isinstance(item, type_filter))
 
-    def select_many(self, selector: Callable[[T], Iterable[U]]) -> "Queryable[T]":
+    def select_many(self, selector: Callable[[T], Iterable[U]]) -> "Queryable[U]":
         """Projects each element of the sequence to an iterable and flattens the
         resulting sequences into one sequence.
 
@@ -234,7 +232,7 @@ class Queryable(Iterable[T]):
                 the sequence into an iterable.
 
         Returns:
-            Queryable: A new Queryable instance containing the flattened sequence.
+            Queryable[U]: A new Queryable instance containing the flattened sequence.
 
         Example:
             ```python
@@ -250,7 +248,7 @@ class Queryable(Iterable[T]):
             ```
         """
 
-        def _():
+        def _() -> Iterator[U]:
             for item in self:
                 yield from selector(item)
 
@@ -264,7 +262,7 @@ class Queryable(Iterable[T]):
                 and returns a value used for sorting.
 
         Returns:
-            Queryable: A new Queryable containing the elements sorted based on the key selector.
+            Queryable[T]: A new Queryable containing the elements sorted based on the key selector.
 
         Example:
             ```python
@@ -278,7 +276,7 @@ class Queryable(Iterable[T]):
             print(result)
             ```
         """
-        return Queryable(item for item in sorted(self, key=key_selector))
+        return Queryable(item for item in sorted(self, key=key_selector, reverse=False))
 
     def order_by_descending(self, key_selector: Callable[[T], U]) -> "Queryable[T]":
         """Orders the elements of the Queryable in descending order based on the
@@ -288,7 +286,7 @@ class Queryable(Iterable[T]):
             key_selector (Callable[[T], U]): A function that extracts a comparable key from each element.
 
         Returns:
-            Queryable: A new Queryable with elements sorted in descending order.
+            Queryable[T]: A new Queryable with elements sorted in descending order.
 
         Example:
             ```python
@@ -328,7 +326,7 @@ class Queryable(Iterable[T]):
             key_selector (Callable[[T], U]): A function that extracts a key from each element for sorting.
 
         Returns:
-            Queryable: A new Queryable with the elements sorted first by the existing sorting criteria,
+            Queryable[T]: A new Queryable with the elements sorted first by the existing sorting criteria,
                        and then by the specified key_selector.
 
         Example:
@@ -363,7 +361,7 @@ class Queryable(Iterable[T]):
                 returns a value used for sorting.
 
         Returns:
-            Queryable: A new Queryable with elements sorted in descending order based on the key selector.
+            Queryable[T]: A new Queryable with elements sorted in descending order based on the key selector.
 
         Example:
             ```python
@@ -406,7 +404,7 @@ class Queryable(Iterable[T]):
         outer_key_selector: Callable[[T], K],
         inner_key_selector: Callable[[U], K],
         result_selector: Callable[[T, Iterable[U]], V],
-    ) -> "Queryable[T]":
+    ) -> "Queryable[V]":
         """Performs a group join operation between two sequences.
 
         Args:
@@ -417,7 +415,7 @@ class Queryable(Iterable[T]):
                                                             and its corresponding inner elements.
 
         Returns:
-            Queryable: A new Queryable containing the result of the group join operation.
+            Queryable[V]: A new Queryable containing the result of the group join operation.
 
         Example:
             ```python
@@ -447,7 +445,7 @@ class Queryable(Iterable[T]):
             ```
         """
 
-        def _():
+        def _() -> Iterator[V]:
             lookup = {inner_key_selector(item): item for item in inner}
             for item in self:
                 key = outer_key_selector(item)
@@ -456,7 +454,7 @@ class Queryable(Iterable[T]):
 
         return Queryable(_())
 
-    def zip(self, other: Iterable[T]) -> "Queryable[T]":
+    def zip(self, other: Iterable[U]) -> "Queryable[Tuple[T, U]]":
         """Zips the elements of the current Queryable instance with the elements of
         another iterable.
 
@@ -464,7 +462,7 @@ class Queryable(Iterable[T]):
             other (Iterable[T]): The iterable to zip with the current Queryable.
 
         Returns:
-            Queryable[T]: A new Queryable instance containing tuples of zipped elements.
+            Queryable[Tuple[T, U]]: A new Queryable instance containing tuples of zipped elements.
 
         Example:
             ```python
@@ -606,11 +604,11 @@ class Queryable(Iterable[T]):
 
         return all(predicate(item) for item in self)
 
-    def any(self, predicate: Callable[[T], bool] = None) -> bool:
+    def any(self, predicate: Optional[Callable[[T], bool]] = None) -> bool:
         """Determines whether any elements of the sequence satisfy a given predicate.
 
         Args:
-            predicate (Callable[[T], bool]): The predicate function to apply to each element.
+            predicate (Optional[Callable[[T], bool]]): The predicate function to apply to each element.
 
         Returns:
             bool: True if any elements satisfy the predicate, False otherwise.
@@ -628,7 +626,7 @@ class Queryable(Iterable[T]):
 
         return any(predicate(item) for item in self)
 
-    def contains(self, value: T) -> T:
+    def contains(self, value: T) -> bool:
         """Determines whether the sequence contains a specific value.
 
         Args:
@@ -647,12 +645,9 @@ class Queryable(Iterable[T]):
         """
         return value in self
 
-    def count(self, predicate: Callable[[T], bool] = None) -> int:
+    def count(self) -> int:
         """Counts the number of elements in the sequence or those satisfying a given
         predicate.
-
-        Args:
-            predicate (Callable[[T], bool]): The predicate function to filter elements.
 
         Returns:
             int: The number of elements in the sequence or satisfying the predicate.
@@ -661,17 +656,17 @@ class Queryable(Iterable[T]):
             ```python
             # Example: Count the number of even numbers
             numbers = Queryable([1, 2, 3, 4, 5, 6])
-            result = numbers.count(lambda x: x % 2 == 0)
-            print(result)  # Output: 3
+            result = numbers.count()
+            print(result)  # Output: 6
             ```
         """
         return sum(1 for _ in self)
 
-    def sum(self) -> int:
+    def sum(self) -> float:
         """Calculates the sum of all elements in the sequence.
 
         Returns:
-            int: The sum of all elements in the sequence.
+            float: The sum of all elements in the sequence.
 
         Example:
             ```python
@@ -681,7 +676,7 @@ class Queryable(Iterable[T]):
             print(result)  # Output: 15
             ```
         """
-        return sum(item for item in self)
+        return sum(cast(float, item) for item in self)
 
     def min(self) -> int:
         """Finds the minimum value among the elements in the sequence.
@@ -717,11 +712,11 @@ class Queryable(Iterable[T]):
         """
         return max(self)
 
-    def average(self) -> int:
+    def average(self) -> float:
         """Calculates the average of all elements in the sequence.
 
         Returns:
-            int: The average of all elements in the sequence.
+            float: The average of all elements in the sequence.
 
         Example:
             ```python
@@ -790,18 +785,18 @@ class Queryable(Iterable[T]):
 
     def first_or_default(
         self,
-        predicate: Callable[[T], bool] = None,
+        predicate: Optional[Callable[[T], bool]] = None,
         default: Optional[T] = None,
-    ) -> T:
+    ) -> Optional[T]:
         """Returns the first element of the sequence satisfying the optional predicate,
         or a default value.
 
         Args:
-            predicate (Callable[[T], bool]): The optional predicate function to filter elements.
+            predicate (Optional[Callable[[T], bool]]): The optional predicate function to filter elements.
             default (Optional[T]): The default value to return if no element satisfies the predicate.
 
         Returns:
-            T: The first element of the sequence satisfying the predicate, or the default value if none found.
+            Optional[T]: The first element of the sequence satisfying the predicate, or the default value if none found.
 
         Example:
             ```python
@@ -823,14 +818,14 @@ class Queryable(Iterable[T]):
 
         return default
 
-    def last(self, predicate: Optional[Callable[[T], bool]] = None) -> T:
+    def last(self, predicate: Optional[Callable[[T], bool]] = None) -> Optional[T]:
         """Returns the last element of the sequence satisfying the optional predicate.
 
         Args:
             predicate (Optional[Callable[[T], bool]]): The optional predicate function to filter elements.
 
         Returns:
-            T: The last element of the sequence satisfying the predicate.
+            Optional[T]: The last element of the sequence satisfying the predicate.
 
         Raises:
             ValueError: If the sequence is empty or no element satisfies the predicate.
@@ -867,7 +862,7 @@ class Queryable(Iterable[T]):
         self,
         predicate: Optional[Callable[[T], bool]] = None,
         default: Optional[T] = None,
-    ) -> T:
+    ) -> Optional[T]:
         """Returns the last element of the sequence satisfying the optional predicate,
         or a default value.
 
@@ -876,7 +871,7 @@ class Queryable(Iterable[T]):
             default (Optional[T]): The default value to return if no element satisfies the predicate.
 
         Returns:
-            T: The last element of the sequence satisfying the predicate, or the default value if none found.
+            Optional[T]: The last element of the sequence satisfying the predicate, or the default value if none found.
 
         Example:
             ```python
@@ -901,11 +896,11 @@ class Queryable(Iterable[T]):
 
         return default
 
-    def single(self, predicate: Callable[[T], bool] = None) -> T:
+    def single(self, predicate: Optional[Callable[[T], bool]] = None) -> T:
         """Returns the single element of the sequence satisfying the optional predicate.
 
         Args:
-            predicate (Callable[[T], bool]): The optional predicate function to filter elements.
+            predicate (Optional[Callable[[T], bool]]): The optional predicate function to filter elements.
 
         Returns:
             T: The single element of the sequence satisfying the predicate.
@@ -956,18 +951,18 @@ class Queryable(Iterable[T]):
 
     def single_or_default(
         self,
-        predicate: Callable[[T], bool] = None,
+        predicate: Optional[Callable[[T], bool]] = None,
         default: Optional[T] = None,
-    ) -> T:
+    ) -> Optional[T]:
         """Returns the single element of the sequence satisfying the optional predicate,
         or a default value if no such element is found.
 
         Args:
-            predicate (Callable[[T], bool]): The optional predicate function to filter elements.
+            predicate (Optional[Callable[[T], bool]]): The optional predicate function to filter elements.
             default (Optional[T]): The default value to return if no element satisfies the predicate.
 
         Returns:
-            T: The single element of the sequence satisfying the predicate, or the default value.
+            Optional[T]: The single element of the sequence satisfying the predicate, or the default value.
 
         Raises:
             ValueError: If the sequence contains more than one element satisfying the predicate.
@@ -1033,7 +1028,7 @@ class Queryable(Iterable[T]):
             msg = "Sequence contains no element at the specified index."
             raise ValueError(msg)
 
-    def element_at_or_default(self, index: int, default: Optional[T] = None) -> T:
+    def element_at_or_default(self, index: int, default: Optional[T] = None) -> Optional[T]:
         """Returns the element at the specified index in the sequence, or a default
         value if none found.
 
@@ -1042,7 +1037,7 @@ class Queryable(Iterable[T]):
             default (Optional[T]): The default value to return if no element is found at the specified index.
 
         Returns:
-            T: The element at the specified index, or the default value if none found.
+            Optional[T]: The element at the specified index, or the default value if none found.
 
         Example:
             ```python
@@ -1075,7 +1070,7 @@ class Queryable(Iterable[T]):
             ```
         """
 
-        def _() -> Iterator[Union[None, T]]:
+        def _() -> Iterator[T]:
             try:
                 next(iter(self))
             except StopIteration:
@@ -1102,7 +1097,7 @@ class Queryable(Iterable[T]):
             result_selector (Callable[[T, U], V]): The result selector function to apply.
 
         Returns:
-            Queryable: A new Queryable containing the joined elements based on the specified conditions.
+            Queryable[T]: A new Queryable containing the joined elements based on the specified conditions.
 
         Example:
             ```python
