@@ -28,7 +28,7 @@ classifiers = [
 python = ">=3.9,<4.0"
 
 [tool.poetry.group.dev.dependencies]
-python-semantic-release = "9.8.6"
+python-semantic-release = "9.8.7"
 isort = "*"
 mypy = "*"
 black = "*"
