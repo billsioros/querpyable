@@ -1084,13 +1084,13 @@ files = [
 
 [[package]]
 name = "pre-commit"
-version = "3.7.1"
+version = "4.0.1"
 description = "A framework for managing and maintaining multi-language pre-commit hooks."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "pre_commit-3.7.1-py2.py3-none-any.whl", hash = "sha256:fae36fd1d7ad7d6a5a1c0b0d5adb2ed1a3bda5a21bf6c3e5372073d7a11cd4c5"},
-    {file = "pre_commit-3.7.1.tar.gz", hash = "sha256:8ca3ad567bc78a4972a3f1a477e94a79d4597e8140a6e0b651c5e33899c3654a"},
+    {file = "pre_commit-4.0.1-py2.py3-none-any.whl", hash = "sha256:efde913840816312445dc98787724647c65473daefe420785f885e8ed9a06878"},
+    {file = "pre_commit-4.0.1.tar.gz", hash = "sha256:80905ac375958c0444c65e9cebebd948b3cdb518f335a091a670a89d652139d2"},
 ]
 
 [package.dependencies]
@@ -1366,13 +1366,13 @@ yaml = ["PyYaml (>=6.0.1)"]
 
 [[package]]
 name = "python-semantic-release"
-version = "9.10.0"
+version = "9.9.0"
 description = "Automatic Semantic Versioning for Python projects"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "python_semantic_release-9.10.0-py3-none-any.whl", hash = "sha256:05a29ce7441e486cfd09d455cfb32abeb64b9c94eb4d2d148ff280578fd95558"},
-    {file = "python_semantic_release-9.10.0.tar.gz", hash = "sha256:45a0199f7805dfe76bb57b932be4a9a5a3f7ff03a897c375eb5a1fa5dcfe5608"},
+    {file = "python_semantic_release-9.9.0-py3-none-any.whl", hash = "sha256:d2475e2c55cba02c723467d4f7562cd91f2b2d29085f7a5fbbf7c9d1b9ce2256"},
+    {file = "python_semantic_release-9.9.0.tar.gz", hash = "sha256:7349ec28b9c52319bae82fb2b9dc1202e10a486cbbeedc38ef9392462ec1c7d7"},
 ]
 
 [package.dependencies]
@@ -1860,4 +1860,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "42eb7187b15666c8df5f93c4cb5c93ee08c71d5e1adf636fc2194318b804c592"
+content-hash = "8e403e6e91092ca1cae581ec3c5cdb696eda9deb1e783f255a31a5a3864172a1"
